@@ -12,6 +12,10 @@ The rear crown follows `reference/annotations/rear-crown.png`. Its width is abou
 
 Named surface polygon indices are in the head object's `panel_faces` custom property. The `landmark_remap` property maps the earlier semantic landmark numbers to current vertex indices. The rig has `Chest` and `Head` bones, with the adjustable yaw driving the head; upper face facets retain planarity through the review animation.
 
+## Web motion lab
+
+`web/` runs the exported GLB in the browser (see `web/README.md`). Jaw and ear motion are runtime morph targets there, not part of the master. A silhouette fit against `Reindeer.png` suggests that `Camera.Logo` framing needs about 1.088× scale and a small offset to match the artwork. The head and neck then align, while the antlers differ in spread and angle.
+
 ## Remaining decisions
 
 - Visually review the latest eye/crown adjustment against the supplied sketches and original logo.

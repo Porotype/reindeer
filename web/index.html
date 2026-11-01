@@ -1,0 +1,943 @@
+<!--local:start--><!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!--local:end-->
+<title>Reindeer Motion Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<!--assets-->
+<style>
+/* Layout: a black logo stage on the left (the artwork's own ground), a control column on the right; stacks on phones.
+   Single dark look on purpose: the original mark lives on black. */
+:root {
+  --ink: #04070a;
+  --panel: #0a1118;
+  --line: #182632;
+  --text: #dce7ee;
+  --muted: #8299aa;
+  --brand: #24aae1;
+  --brand-hi: #10b7e8;
+  --brand-lo: #127cab;
+  --font-display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { background: var(--ink); color: var(--text); }
+body {
+  font: 15px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+h1 { font: 700 clamp(22px, 3vw, 30px)/1.1 var(--font-display); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--brand); }
+.sub { color: var(--muted); margin: 0; max-width: 62ch; }
+.lab { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .lab { grid-template-columns: minmax(0, 1fr); } }
+
+.stage {
+  position: relative; background: #000; border: 1px solid var(--line);
+  aspect-ratio: 3 / 4; width: min(100%, 61vh); max-width: 100%; margin: 0 auto;
+  overflow: hidden; touch-action: none; cursor: crosshair;
+}
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage .ref { position: absolute; top: 0; left: 50%; height: 100%; transform: translateX(-50%); opacity: 0; pointer-events: none; }
+.stage .hud { position: absolute; left: 12px; bottom: 10px; right: 12px; display: flex; justify-content: space-between; gap: 12px;
+  font: 11px/1.4 var(--font-mono); color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.stage .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 13px var(--font-mono); }
+
+.panel { background: var(--panel); border: 1px solid var(--line); display: grid; min-width: 0; }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line); }
+.tabs button {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted);
+  font: 500 13px var(--font-body); padding: 12px 6px 10px; cursor: pointer; display: grid; gap: 2px; justify-items: center;
+}
+.tabs button small { font: 10px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--brand); }
+.tabs button:focus-visible, .ctl :focus-visible, .btn:focus-visible { outline: 2px solid var(--brand-hi); outline-offset: 2px; }
+.pane { padding: 16px 18px 20px; display: grid; gap: 14px; min-width: 0; }
+.pane h2 { font: 700 17px/1.25 var(--font-display); margin: 0; }
+.pane p { margin: 0; color: var(--muted); font-size: 14px; }
+.ctl { display: grid; gap: 10px; }
+.row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 13px; }
+.row output { font: 12px var(--font-mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.row input[type=range] { width: 100%; accent-color: var(--brand); }
+.row select { grid-column: 2 / 4; background: var(--ink); color: var(--text); border: 1px solid var(--line); padding: 6px 8px; font: inherit; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.check input { accent-color: var(--brand); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--ink); color: var(--text);
+  font: 500 13px var(--font-body); padding: 8px 12px; cursor: pointer;
+}
+.btn.primary { border-color: var(--brand-lo); background: #0d3348; }
+.btn[aria-pressed="true"] { border-color: var(--brand); color: var(--brand-hi); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.meter { height: 6px; background: var(--ink); border: 1px solid var(--line); position: relative; }
+.meter i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--brand); }
+.label { font: 10px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.log:empty { display: none; }
+.log { font: 11px/1.5 var(--font-mono); color: var(--muted); max-height: 120px; overflow: auto; background: var(--ink); border: 1px solid var(--line); padding: 6px 8px; white-space: pre-wrap; }
+.note { border-top: 1px solid var(--line); padding-top: 12px; }
+
+.findings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; border-top: 1px solid var(--line); padding-top: 20px; }
+@media (max-width: 900px) { .findings { grid-template-columns: minmax(0, 1fr); } }
+.findings h3 { font: 700 15px var(--font-display); margin: 0 0 6px; }
+.findings p, .findings li { color: var(--muted); font-size: 14px; max-width: 65ch; }
+.findings p { margin: 0 0 8px; }
+.findings ul { margin: 0; padding-left: 18px; }
+code { font: 12.5px var(--font-mono); color: var(--text); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Reindeer <span>Motion Lab</span></h1>
+    <p class="sub">V18 model, logo camera, live. Three experiments share one stage: hover turn, cursor gaze with a fixed neck, and voice-driven talking.</p>
+  </header>
+
+  <div class="lab">
+    <div class="stage" id="stage">
+      <canvas id="gl"></canvas>
+      <canvas id="asciicv" hidden></canvas>
+      <img class="ref" id="ref" alt="">
+      <div class="loading" id="loading">Loading model…</div>
+      <div class="hud"><span id="hud-l"></span><span id="hud-r"></span></div>
+    </div>
+
+    <div class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-turn" aria-selected="true" aria-controls="pane-turn"><small>01</small>Logo turn</button>
+        <button role="tab" id="tab-gaze" aria-selected="false" aria-controls="pane-gaze"><small>02</small>Gaze</button>
+        <button role="tab" id="tab-voice" aria-selected="false" aria-controls="pane-voice"><small>03</small>Voice</button>
+      </div>
+
+      <section class="pane" id="pane-turn" role="tabpanel">
+        <h2>Logo match, turns on hover</h2>
+        <p>Facet colours are sampled from the original artwork through the logo camera, then relit as the model moves. At rest it shows the logo's own blues.</p>
+        <div class="ctl">
+          <div class="row"><label for="shading">Shading</label>
+            <select id="shading">
+              <option value="0">Logo colours, relit</option>
+              <option value="1">Brand ramp, stepped</option>
+              <option value="2">GLB materials, lit</option>
+            </select></div>
+          <div class="row"><label for="turnmode">On hover</label>
+            <select id="turnmode">
+              <option value="face">Turn toward viewer</option>
+              <option value="follow">Follow pointer</option>
+              <option value="spin">Full turn</option>
+            </select></div>
+          <div class="row"><label for="turnangle">Turn angle</label><input type="range" id="turnangle" min="10" max="80" value="48"><output id="turnangle-o"></output></div>
+          <div class="row"><label for="overlay">Logo overlay</label><input type="range" id="overlay" min="0" max="100" value="0"><output id="overlay-o"></output></div>
+          <label class="check"><input type="checkbox" id="diff"> Show overlay as difference</label>
+        </div>
+        <p class="note">Move the pointer over the stage. Drag the overlay to compare the rest pose with <code>Reindeer.png</code>.</p>
+      </section>
+
+      <section class="pane" id="pane-gaze" role="tabpanel" hidden>
+        <h2>Looks where you point</h2>
+        <p>Only the <code>Head</code> bone rotates. The chest bone stays put, and the existing neck weights blend the upper neck. Ears and antlers follow the head.</p>
+        <div class="ctl">
+          <div class="row"><label for="gazestyle">Motion</label>
+            <select id="gazestyle">
+              <option value="glance">Glance and hold</option>
+              <option value="smooth">Smooth follow</option>
+            </select></div>
+          <div class="row"><label for="gazeint">Intensity</label><input type="range" id="gazeint" min="0" max="100" value="75"><output id="gazeint-o"></output></div>
+          <div class="row"><label for="gazedepth">Target depth</label><input type="range" id="gazedepth" min="2" max="30" value="10"><output id="gazedepth-o"></output></div>
+          <label class="check"><input type="checkbox" id="tilt" checked> Tilt head into turns</label>
+          <label class="check"><input type="checkbox" id="idle" checked> Idle life (glances, ear flicks)</label>
+        </div>
+        <p class="note">The cursor is tracked across the whole page, not only the stage. Leave it still for a few seconds and the reindeer returns to the logo pose.</p>
+      </section>
+
+      <section class="pane" id="pane-voice" role="tabpanel" hidden>
+        <h2>Talking, without a cartoon mouth</h2>
+        <p>The audio envelope drops a small jaw hinge on the chin facets. Syllable onsets add small nods, and phrases lift the head and perk the ears.</p>
+        <div class="ctl">
+          <span class="label">Voice source</span>
+          <div class="btns">
+            <button class="btn primary" id="src-babble" aria-pressed="false">Synthetic voice</button>
+            <label class="btn" for="src-file">Audio file…</label>
+            <input type="file" id="src-file" accept="audio/*" hidden>
+            <button class="btn" id="src-mic" aria-pressed="false" hidden>Microphone</button>
+            <button class="btn" id="src-stop">Stop</button>
+          </div>
+          <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+          <div class="row"><label for="jaw">Jaw</label><input type="range" id="jaw" min="0" max="100" value="55"><output id="jaw-o"></output></div>
+          <div class="row"><label for="nod">Nods</label><input type="range" id="nod" min="0" max="100" value="45"><output id="nod-o"></output></div>
+          <div class="row"><label for="glow">Throat glow</label><input type="range" id="glow" min="0" max="100" value="30"><output id="glow-o"></output></div>
+          <div class="row"><label for="lead">Visual lead</label><input type="range" id="lead" min="0" max="200" value="60"><output id="lead-o"></output></div>
+          <label class="check"><input type="checkbox" id="voicegaze" checked> Keep following the pointer</label>
+        </div>
+        <div class="ctl">
+          <label class="check"><input type="checkbox" id="ascii"> Render as ASCII</label>
+          <div class="row"><label for="asciiset">Characters</label>
+            <select id="asciiset">
+              <option value="ramp">Shade ramp</option>
+              <option value="binary">Binary</option>
+              <option value="code">Code glyphs</option>
+            </select></div>
+          <div class="row"><label for="asciisize">Cell size</label><input type="range" id="asciisize" min="6" max="20" value="10"><output id="asciisize-o"></output></div>
+          <label class="check"><input type="checkbox" id="asciiedges" checked> Draw facet edges as line glyphs</label>
+        </div>
+        <div class="ctl" id="rt" hidden>
+          <span class="label">OpenAI Realtime (WebRTC)</span>
+          <div class="btns">
+            <button class="btn primary" id="rt-connect">Talk to the reindeer</button>
+            <button class="btn" id="rt-hangup" disabled>Hang up</button>
+          </div>
+          <div class="log" id="rt-log"></div>
+        </div>
+        <p class="note" id="rt-hint">The synthetic voice is a formant test signal, so it only stands in for speech. For a real voice, upload a clip. Run <code>node web/server.mjs</code> for the microphone and the live OpenAI Realtime connection.</p>
+      </section>
+    </div>
+  </div>
+
+  <section class="findings">
+    <div>
+      <h3>01 · Logo match</h3>
+      <p>The rest pose renders through <code>Camera.Logo</code>. Every planar facet group votes on its colour by sampling <code>Reindeer.png</code> and snapping to the 13 fills in the SVG. A least-squares fit then recovers the artwork's implied light direction. While turning, each facet keeps its logo colour scaled by how its lighting changed, so the rest frame matches the artwork and motion stays believable.</p>
+      <p>Camera.Logo is close but not exact. A silhouette fit (area and centroid against the artwork) scales the frame by about 1.09 and shifts it slightly, and then the neck and head outline match. The antlers still differ from the drawing in spread and angle.</p>
+      <p>Facets hidden at rest fall back to the brand ramp. Where the model's facets don't line up with the drawing, the overlay shows the gap. That is a modelling question, not a shading one.</p>
+    </div>
+    <div>
+      <h3>02 · Gaze, neck fixed</h3>
+      <p>The rig already allows this. <code>Head</code> pivots at the jaw hinge (y 4.8), and neck vertices between y 3.6 and 4.6 are blended 10–33% to the chest, so the neck bends softly. The base stays put. Yaw is clamped to −30…65° and pitch to −25…18° relative to the chest, including the 9° artwork turn.</p>
+      <p>Glance-and-hold motion, where the head moves only when the target drifts past about 6°, reads as an animal. Continuous tracking reads as a turret. No eye geometry is needed.</p>
+    </div>
+    <div>
+      <h3>03 · Voice</h3>
+      <p>This is feasible and cheap. OpenAI Realtime over WebRTC gives a remote <code>MediaStream</code>. An <code>AnalyserNode</code> on it yields the envelope with less than one frame of latency, and a 40–80 ms output delay lets the jaw lead the sound slightly, the way real speech does. OpenAI sends no visemes, and transcript deltas aren't time-aligned to audio, so the motion comes from the audio itself.</p>
+      <p>A low-poly mascot doesn't need lip shapes. A 4–8° chin hinge plus prosody (nods, ear perks, a raised head while speaking) is enough to read as "the mascot is talking" without looking goofy.</p>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const DEG = Math.PI / 180;
+const ASSETS = window.REINDEER_ASSETS || { glb: '../exports/reindeer.glb', png: '../reference/Reindeer.png' };
+// The 13 fills used in reference/Reindeer.svg.
+const SVG_FILLS = ['127CAB', '24AAE1', '10B7E8', '149BCF', '2CA5D6', '27A4D7', '269ECC', '2198C6', '17A3D9', '15ACD9', '14AAD5', '1395C7', '10A5D1'];
+const RAMP_FILLS = ['127CAB', '1395C7', '149BCF', '24AAE1', '10B7E8'];
+const BASE_YAW = 9; // artwork head turn relative to chest (project.json / head_yaw_deg)
+const LOGO_YMAG = 5.95; // Camera.Logo orthographic half-height
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const $ = (id) => document.getElementById(id);
+const stage = $('stage');
+const ref = $('ref');
+ref.src = ASSETS.png;
+
+// ---------- loading ----------
+async function loadGLB() {
+  let buffer;
+  if (ASSETS.glbBase64) {
+    const bin = atob(ASSETS.glbBase64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    buffer = bytes.buffer;
+  } else {
+    buffer = await (await fetch(ASSETS.glb)).arrayBuffer();
+  }
+  return new Promise((resolve, reject) => new GLTFLoader().parse(buffer, '', resolve, reject));
+}
+function loadImage(src) {
+  return new Promise((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = src; });
+}
+const hexToSrgb = (h) => [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+const toLinear = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+const linOf = (h) => hexToSrgb(h).map(toLinear);
+const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+
+// ---------- renderer / scene ----------
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true });
+renderer.setClearColor(0x000000, 1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
+const camBack = new THREE.Vector3();
+
+const [gltf, refImg] = await Promise.all([loadGLB(), loadImage(ASSETS.png)]);
+scene.add(gltf.scene);
+gltf.scene.updateMatrixWorld(true);
+const byName = (name) => gltf.scene.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(name));
+const logoCamNode = byName('Camera.Logo');
+logoCamNode.getWorldPosition(cam.position);
+logoCamNode.getWorldQuaternion(cam.quaternion);
+cam.updateMatrixWorld(true);
+camBack.set(0, 0, 1).applyQuaternion(cam.quaternion);
+
+const rig = byName('Reindeer.Rig');
+const headBone = byName('Head');
+const chestBone = byName('Chest');
+const setHead = (yaw, pitch, roll) => headBone.quaternion.setFromEuler(new THREE.Euler(pitch * DEG, yaw * DEG, roll * DEG, 'YXZ'));
+setHead(BASE_YAW, 0, 0);
+
+// Lighting for the "GLB materials" comparison only.
+scene.add(new THREE.HemisphereLight(0xffffff, 0x223344, 1.1));
+const key = new THREE.DirectionalLight(0xffffff, 2.2);
+key.position.copy(cam.position).add(new THREE.Vector3(-6, 8, 4));
+scene.add(key);
+
+// ---------- shared shading uniforms ----------
+const U = {
+  uA: { value: 0.3 }, uV: { value: new THREE.Vector3(0, 0.3, 0) }, uFloor: { value: 0.08 },
+  uMode: { value: 0 }, uCamDir: { value: camBack },
+  uPal: { value: RAMP_FILLS.map((h) => new THREE.Vector3(...linOf(h))) },
+  uLmin: { value: 0 }, uLmax: { value: 1 },
+  uGlow: { value: 0 }, uGlowColor: { value: new THREE.Vector3(...linOf('7FE3FF')) },
+};
+function facetMaterial() {
+  const m = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  m.onBeforeCompile = (s) => {
+    Object.assign(s.uniforms, U);
+    s.vertexShader = s.vertexShader
+      .replace('#include <common>', `#include <common>
+attribute float restLight; attribute float glowMask;
+varying vec3 vWP; varying float vRestL; varying float vGlowM;`)
+      .replace('#include <project_vertex>', `#include <project_vertex>
+vWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vRestL = restLight; vGlowM = glowMask;`);
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', `#include <common>
+uniform float uA; uniform vec3 uV; uniform float uFloor; uniform int uMode; uniform vec3 uCamDir;
+uniform vec3 uPal[5]; uniform float uLmin; uniform float uLmax; uniform float uGlow; uniform vec3 uGlowColor;
+varying vec3 vWP; varying float vRestL; varying float vGlowM;`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+vec3 fn = normalize(cross(dFdx(vWP), dFdy(vWP)));
+if (dot(fn, uCamDir) < 0.0) fn = -fn;
+float L = max(uA + dot(uV, fn), uFloor);
+vec3 col;
+if (uMode == 0) {
+  col = diffuseColor.rgb * clamp(L / vRestL, 0.5, 1.8);
+} else {
+  float t = clamp((L - uLmin) / (uLmax - uLmin), 0.0, 0.999);
+  col = uPal[int(floor(t * 5.0))];
+}
+col += uGlowColor * uGlow * vGlowM;
+diffuseColor.rgb = col;`);
+  };
+  return m;
+}
+
+// ---------- mesh preparation: non-indexed facets, morphs, baked colours ----------
+const parts = [];
+gltf.scene.traverse((o) => {
+  if (!o.isSkinnedMesh) return;
+  let n = o, kind = null;
+  while (n && !kind) { kind = /HeadNeck/.test(n.name) ? 'head' : /Ear/.test(n.name) ? 'ear' : /Antler/.test(n.name) ? 'antler' : null; n = n.parent; }
+  o.geometry = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry;
+  o.frustumCulled = false;
+  o.userData.glbMaterial = o.material;
+  o.material.flatShading = true;
+  parts.push({ mesh: o, kind });
+});
+
+const v = new THREE.Vector3(), q = new THREE.Quaternion();
+// Jaw hinge: rotate the chin rows about an X axis behind the mouth corner (bind space; muzzle is +Z, up is +Y).
+const JAW_PIVOT = new THREE.Vector3(0, 5.0, 0.7), JAW_MAX = 10 * DEG;
+const jawWeight = (p) => {
+  if (p.z > 1.5 && p.y < 4.76) return 1;
+  if (p.z > 1.5 && p.y < 4.85) return 0.75;
+  if (p.z > 0.3 && p.y > 4.4 && p.y < 4.65) return 0.2;
+  return 0;
+};
+for (const part of parts) {
+  const g = part.mesh.geometry, pos = g.attributes.position;
+  const disp = new Float32Array(pos.count * 3);
+  if (part.kind === 'head') {
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      const w = jawWeight(v);
+      if (!w) continue;
+      q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), JAW_MAX * w);
+      const r = v.clone().sub(JAW_PIVOT).applyQuaternion(q).add(JAW_PIVOT).sub(v);
+      disp.set([r.x, r.y, r.z], i * 3);
+    }
+  } else if (part.kind === 'ear') {
+    // Perk: rotate about an axis through the ear base that lifts the tip.
+    const pts = []; for (let i = 0; i < pos.count; i++) pts.push(new THREE.Vector3().fromBufferAttribute(pos, i));
+    const byInner = [...pts].sort((a, b) => Math.abs(a.x) - Math.abs(b.x));
+    const pivot = byInner.slice(0, 4).reduce((s, p) => s.add(p), new THREE.Vector3()).multiplyScalar(0.25);
+    const tip = pts.reduce((best, p) => (p.distanceTo(pivot) > best.distanceTo(pivot) ? p : best), pts[0]);
+    const axis = tip.clone().sub(pivot).cross(new THREE.Vector3(0, 1, 0)).normalize();
+    q.setFromAxisAngle(axis, 14 * DEG);
+    pts.forEach((p, i) => { const r = p.clone().sub(pivot).applyQuaternion(q).add(pivot).sub(p); disp.set([r.x, r.y, r.z], i * 3); });
+    part.side = Math.sign(tip.x);
+  }
+  if (part.kind !== 'antler') {
+    g.morphAttributes.position = [new THREE.BufferAttribute(disp, 3)];
+    g.morphTargetsRelative = true;
+    part.mesh.updateMorphTargets();
+  }
+}
+
+// Bake: project each planar facet group through the logo camera and vote on its fill colour.
+function bake() {
+  const bakeCam = cam.clone();
+  const ar = refImg.width / refImg.height;
+  bakeCam.top = frame2d.cy + frame2d.ymag; bakeCam.bottom = frame2d.cy - frame2d.ymag;
+  bakeCam.left = frame2d.cx - frame2d.ymag * ar; bakeCam.right = frame2d.cx + frame2d.ymag * ar;
+  bakeCam.updateProjectionMatrix(); bakeCam.updateMatrixWorld(true);
+  const cv = document.createElement('canvas'); cv.width = refImg.width; cv.height = refImg.height;
+  const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(refImg, 0, 0);
+  const px = cx.getImageData(0, 0, cv.width, cv.height).data;
+  const fills = SVG_FILLS.map((h) => ({ h, s: hexToSrgb(h), l: linOf(h) }));
+  const snap = (x, y) => {
+    const ix = Math.min(cv.width - 1, Math.max(0, Math.round(x))), iy = Math.min(cv.height - 1, Math.max(0, Math.round(y)));
+    const o = (iy * cv.width + ix) * 4, c = [px[o], px[o + 1], px[o + 2]];
+    let best = null, bd = 30 * 30;
+    for (const f of fills) { const d = (f.s[0] - c[0]) ** 2 + (f.s[1] - c[1]) ** 2 + (f.s[2] - c[2]) ** 2; if (d < bd) { bd = d; best = f; } }
+    return best;
+  };
+  const BARY = [[1/3, 1/3, 1/3], [.6, .2, .2], [.2, .6, .2], [.2, .2, .6], [.45, .45, .1], [.45, .1, .45], [.1, .45, .45]];
+  const groups = [];
+  for (const part of parts) {
+    const m = part.mesh, g = m.geometry, pos = g.attributes.position, nTri = pos.count / 3;
+    const world = [], tris = [];
+    for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i); m.applyBoneTransform(i, v); world.push(v.clone().applyMatrix4(m.matrixWorld)); }
+    for (let t = 0; t < nTri; t++) {
+      const [a, b, c] = [world[3 * t], world[3 * t + 1], world[3 * t + 2]];
+      const n = b.clone().sub(a).cross(c.clone().sub(a));
+      const area = n.length() / 2; n.normalize();
+      tris.push({ a, b, c, n, area, parent: t });
+    }
+    // Union coplanar neighbours so a quad (or larger planar panel) gets one colour.
+    const find = (t) => (tris[t].parent === t ? t : (tris[t].parent = find(tris[t].parent)));
+    const key = (i) => { v.fromBufferAttribute(pos, i); return `${v.x.toFixed(4)},${v.y.toFixed(4)},${v.z.toFixed(4)}`; };
+    const edges = new Map();
+    for (let t = 0; t < nTri; t++) for (let e = 0; e < 3; e++) {
+      const k1 = key(3 * t + e), k2 = key(3 * t + (e + 1) % 3), k = k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1;
+      const other = edges.get(k);
+      if (other === undefined) edges.set(k, t);
+      else if (tris[t].n.dot(tris[other].n) > 0.999) tris[find(t)].parent = find(other);
+    }
+    const byRoot = new Map();
+    for (let t = 0; t < nTri; t++) { const r = find(t); if (!byRoot.has(r)) byRoot.set(r, []); byRoot.get(r).push(t); }
+    for (const list of byRoot.values()) {
+      const n = tris[list[0]].n, votes = new Map();
+      let area = 0;
+      for (const t of list) area += tris[t].area;
+      if (n.dot(camBack) > 0.03) {
+        for (const t of list) {
+          const { a, b, c } = tris[t];
+          for (const [wa, wb, wc] of BARY) {
+            const p = a.clone().multiplyScalar(wa).addScaledVector(b, wb).addScaledVector(c, wc).project(bakeCam);
+            const f = snap((p.x + 1) / 2 * cv.width, (1 - p.y) / 2 * cv.height);
+            if (f) votes.set(f, (votes.get(f) || 0) + tris[t].area);
+          }
+        }
+      }
+      let fill = null, best = 0;
+      for (const [f, w] of votes) if (w > best) { best = w; fill = f; }
+      groups.push({ part, list, n, area, fill, facing: n.dot(camBack) });
+    }
+  }
+  // Fit the artwork's implied light: lum ≈ a + v·n, weighted by visible area.
+  const M = Array.from({ length: 4 }, () => [0, 0, 0, 0]), B = [0, 0, 0, 0];
+  for (const gr of groups) {
+    if (!gr.fill) continue;
+    const x = [1, gr.n.x, gr.n.y, gr.n.z], y = lum(gr.fill.l), w = gr.area * gr.facing;
+    for (let i = 0; i < 4; i++) { B[i] += w * x[i] * y; for (let j = 0; j < 4; j++) M[i][j] += w * x[i] * x[j]; }
+  }
+  for (let i = 0; i < 4; i++) M[i][i] += 1e-4;
+  const sol = solve4(M, B);
+  U.uA.value = sol[0]; U.uV.value.set(sol[1], sol[2], sol[3]);
+  const span = sol[0] + U.uV.value.length();
+  U.uFloor.value = 0.22 * span;
+  const rampL = RAMP_FILLS.map((h) => lum(linOf(h)));
+  U.uLmin.value = rampL[0] - 0.5 * (rampL[1] - rampL[0]);
+  U.uLmax.value = rampL[4] + 0.5 * (rampL[4] - rampL[3]);
+  const rampAt = (L) => RAMP_FILLS[Math.min(4, Math.max(0, Math.floor((L - U.uLmin.value) / (U.uLmax.value - U.uLmin.value) * 5)))];
+  // Write per-vertex attributes.
+  const attrs = new Map();
+  for (const part of parts) {
+    const count = part.mesh.geometry.attributes.position.count;
+    attrs.set(part, { color: new Float32Array(count * 3), rest: new Float32Array(count), glow: new Float32Array(count) });
+  }
+  let matched = 0;
+  for (const gr of groups) {
+    const L0 = Math.max(sol[0] + U.uV.value.dot(gr.n), U.uFloor.value);
+    const col = gr.fill ? gr.fill.l : linOf(rampAt(L0));
+    if (gr.fill) matched++;
+    const at = attrs.get(gr.part), pos = gr.part.mesh.geometry.attributes.position;
+    for (const t of gr.list) for (let k = 0; k < 3; k++) {
+      const i = 3 * t + k;
+      at.color.set(col, i * 3); at.rest[i] = L0;
+      v.fromBufferAttribute(pos, i);
+      at.glow[i] = gr.part.kind === 'head' && v.y > 3.4 && v.y < 4.95 && v.z > 0.2 ? 1 : 0;
+    }
+  }
+  for (const [part, at] of attrs) {
+    const g = part.mesh.geometry;
+    g.setAttribute('color', new THREE.BufferAttribute(at.color, 3));
+    g.setAttribute('restLight', new THREE.BufferAttribute(at.rest, 1));
+    g.setAttribute('glowMask', new THREE.BufferAttribute(at.glow, 1));
+    part.mesh.userData.facetMaterial = facetMaterial();
+    part.mesh.material = part.mesh.userData.facetMaterial;
+  }
+  return { groups: groups.length, matched, light: U.uV.value.clone().normalize() };
+}
+function solve4(A, b) {
+  const M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < 4; c++) {
+    let p = c; for (let r = c + 1; r < 4; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = 0; r < 4; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k < 5; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map((r, i) => r[4] / r[i]);
+}
+// 2D fit: match the rendered silhouette's area and centroid to the artwork's, then frame the live camera with it.
+// Camera.Logo is close but not exact; this keeps the overlay comparison honest without touching the 3D camera angle.
+const frame2d = { cx: 0, cy: 0, ymag: LOGO_YMAG, zoom: 1 };
+function fitToArtwork() {
+  const W = refImg.width * 2, H = refImg.height * 2, a = refImg.width / refImg.height;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(refImg, 0, 0, W, H);
+  const ref = cx.getImageData(0, 0, W, H).data;
+  const moments = (get) => { let n = 0, sx = 0, sy = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (get(x, y)) { n++; sx += x; sy += y; } return { n, x: sx / n, y: sy / n }; };
+  const mr = moments((x, y) => ref[(y * W + x) * 4 + 2] > 60);
+  const rt = new THREE.WebGLRenderTarget(W, H);
+  const fitCam = cam.clone(), white = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+  const buf = new Uint8Array(W * H * 4);
+  for (let iter = 0; iter < 3; iter++) {
+    fitCam.top = frame2d.cy + frame2d.ymag; fitCam.bottom = frame2d.cy - frame2d.ymag;
+    fitCam.left = frame2d.cx - frame2d.ymag * a; fitCam.right = frame2d.cx + frame2d.ymag * a;
+    fitCam.updateProjectionMatrix();
+    scene.overrideMaterial = white; renderer.setRenderTarget(rt); renderer.render(scene, fitCam);
+    renderer.setRenderTarget(null); scene.overrideMaterial = null;
+    renderer.readRenderTargetPixels(rt, 0, 0, W, H, buf);
+    const mm = moments((x, y) => buf[((H - 1 - y) * W + x) * 4] > 127);
+    const s = Math.sqrt(mr.n / mm.n);
+    const toWorld = (px, py, ymag) => [frame2d.cx + (px / W * 2 - 1) * ymag * a, frame2d.cy + (1 - py / H * 2) * ymag];
+    const [um, vm] = toWorld(mm.x, mm.y, frame2d.ymag);
+    const ymag = frame2d.ymag / s;
+    frame2d.cx = um - (mr.x / W * 2 - 1) * ymag * a;
+    frame2d.cy = vm - (1 - mr.y / H * 2) * ymag;
+    frame2d.ymag = ymag;
+  }
+  rt.dispose();
+}
+fitToArtwork();
+const bakeInfo = bake();
+bakeInfo.fit = { scale: +(LOGO_YMAG / frame2d.ymag).toFixed(3), dx: +frame2d.cx.toFixed(3), dy: +frame2d.cy.toFixed(3) };
+$('loading').hidden = true;
+
+// ---------- springs ----------
+class Spring {
+  constructor(k, zeta = 1, x = 0) { this.k = k; this.c = 2 * Math.sqrt(k) * zeta; this.x = x; this.v = 0; this.target = x; }
+  step(dt) { const a = this.k * (this.target - this.x) - this.c * this.v; this.v += a * dt; this.x += this.v * dt; return this.x; }
+}
+const turn = new Spring(38, 0.62);
+const gazeYaw = new Spring(70, 1, BASE_YAW), gazePitch = new Spring(70, 1);
+const nod = new Spring(70, 0.45), sway = new Spring(12, 1), lift = new Spring(10, 1);
+const jaw = new Spring(520, 0.9);
+const ears = parts.filter((p) => p.kind === 'ear').map((p) => ({ part: p, s: new Spring(160, 0.35), nextFlick: 2 + Math.random() * 4 }));
+
+// ---------- UI state ----------
+const state = { tab: 'turn', hover: false, pointer: { x: 0, y: 0 }, lastMove: -10, spinTarget: 0 };
+const val = (id) => +$(id).value;
+const bindOut = (id, fmt) => { const f = () => ($(id + '-o').textContent = fmt(val(id))); $(id).addEventListener('input', f); f(); };
+bindOut('turnangle', (x) => x + '°');
+bindOut('overlay', (x) => x + '%');
+bindOut('gazeint', (x) => x + '%');
+bindOut('gazedepth', (x) => x);
+bindOut('jaw', (x) => (x / 100 * JAW_MAX / DEG).toFixed(1) + '°');
+bindOut('nod', (x) => x + '%');
+bindOut('glow', (x) => x + '%');
+bindOut('lead', (x) => x + 'ms');
+bindOut('asciisize', (x) => x + 'px');
+const applyOverlay = () => { ref.style.opacity = val('overlay') / 100; ref.style.mixBlendMode = $('diff').checked ? 'difference' : 'normal'; };
+$('overlay').addEventListener('input', applyOverlay); $('diff').addEventListener('change', applyOverlay);
+const applyShading = () => {
+  const mode = val('shading');
+  U.uMode.value = mode;
+  for (const p of parts) p.mesh.material = mode === 2 ? p.mesh.userData.glbMaterial : p.mesh.userData.facetMaterial;
+};
+$('shading').addEventListener('change', applyShading);
+
+const TABS = ['turn', 'gaze', 'voice'];
+function selectTab(name) {
+  if (!TABS.includes(name)) name = 'turn';
+  state.tab = name;
+  for (const t of TABS) { $('tab-' + t).setAttribute('aria-selected', t === name); $('pane-' + t).hidden = t !== name; }
+  if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
+}
+for (const t of TABS) $('tab-' + t).addEventListener('click', () => selectTab(t));
+addEventListener('hashchange', () => selectTab(location.hash.slice(1)));
+selectTab(location.hash.slice(1));
+
+stage.addEventListener('pointerenter', () => { state.hover = true; if (state.tab === 'turn' && $('turnmode').value === 'spin') state.spinTarget += 360; });
+stage.addEventListener('pointerleave', () => { state.hover = false; });
+addEventListener('pointermove', (e) => {
+  const r = stage.getBoundingClientRect();
+  state.pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  state.pointer.y = -(((e.clientY - r.top) / r.height) * 2 - 1);
+  state.lastMove = performance.now() / 1000;
+});
+
+// ---------- resize ----------
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(w, h, false);
+  const y = (frame2d?.ymag ?? LOGO_YMAG) * zoomOut.x, cx = frame2d?.cx ?? 0, cy = frame2d?.cy ?? 0;
+  cam.top = cy + y; cam.bottom = cy - y; cam.left = cx - y * w / h; cam.right = cx + y * w / h;
+  cam.updateProjectionMatrix();
+  ref.style.height = (100 / zoomOut.x) + '%';
+  ref.style.top = (50 - 50 / zoomOut.x) + '%';
+}
+const zoomOut = new Spring(30, 1, 1);
+new ResizeObserver(resize).observe(stage);
+resize();
+
+// ---------- gaze ----------
+const raycaster = new THREE.Raycaster(), pivot = new THREE.Vector3(), chestQ = new THREE.Quaternion();
+let held = { yaw: BASE_YAW, pitch: 0 }, nextGlance = 0;
+function desiredGaze(now) {
+  const idleFor = now - state.lastMove;
+  const intensity = val('gazeint') / 100;
+  let yaw, pitch;
+  if (idleFor > 3.5) {
+    // Drift back to the logo pose with occasional small glances.
+    if (now > nextGlance) {
+      nextGlance = now + 2.5 + Math.random() * 3.5;
+      const glance = $('idle').checked && !REDUCED && Math.random() < 0.6;
+      held = glance ? { yaw: BASE_YAW + (Math.random() * 2 - 1) * 12, pitch: (Math.random() * 2 - 1) * 5 } : { yaw: BASE_YAW, pitch: 0 };
+    }
+    return held;
+  }
+  raycaster.setFromCamera(state.pointer, cam);
+  headBone.getWorldPosition(pivot);
+  const { origin, direction } = raycaster.ray;
+  const t = pivot.clone().sub(origin).dot(direction);
+  const target = origin.clone().addScaledVector(direction, t - val('gazedepth'));
+  const d = target.sub(pivot).applyQuaternion(chestBone.getWorldQuaternion(chestQ).invert());
+  yaw = THREE.MathUtils.clamp(Math.atan2(d.x, d.z) / DEG, -30, 65);
+  pitch = THREE.MathUtils.clamp(-Math.atan2(d.y, Math.hypot(d.x, d.z)) / DEG, -25, 18);
+  yaw = BASE_YAW + (yaw - BASE_YAW) * intensity;
+  pitch *= intensity;
+  if ($('gazestyle').value === 'smooth') return { yaw, pitch };
+  if (Math.hypot(yaw - held.yaw, pitch - held.pitch) > 6) held = { yaw, pitch };
+  return held;
+}
+
+// ---------- voice ----------
+const voice = { ctx: null, analyser: null, delay: null, out: null, source: null, stop: null, env: 0, envSlow: 0, lastOnset: 0, data: null, kind: null };
+function audio() {
+  if (!voice.ctx) {
+    const ctx = new AudioContext();
+    voice.ctx = ctx;
+    voice.analyser = ctx.createAnalyser(); voice.analyser.fftSize = 1024; voice.analyser.smoothingTimeConstant = 0;
+    voice.data = new Float32Array(voice.analyser.fftSize);
+    voice.delay = ctx.createDelay(1); voice.out = ctx.createGain();
+    voice.delay.connect(voice.out).connect(ctx.destination);
+  }
+  voice.ctx.resume();
+  voice.delay.delayTime.value = val('lead') / 1000;
+  return voice.ctx;
+}
+$('lead').addEventListener('input', () => voice.delay && (voice.delay.delayTime.value = val('lead') / 1000));
+function useSource(node, kind, stop, monitor = true) {
+  stopVoice();
+  node.connect(voice.analyser);
+  if (monitor) node.connect(voice.delay);
+  voice.source = node; voice.stop = stop; voice.kind = kind;
+  for (const id of ['src-babble', 'src-mic']) $(id).setAttribute('aria-pressed', id === 'src-' + kind);
+}
+function stopVoice() {
+  if (voice.source) { try { voice.source.disconnect(); } catch {} }
+  voice.stop?.(); voice.source = null; voice.stop = null; voice.kind = null;
+  for (const id of ['src-babble', 'src-mic']) $(id).setAttribute('aria-pressed', 'false');
+}
+$('src-stop').addEventListener('click', stopVoice);
+
+// Synthetic voice: sawtooth glottal source through two formant filters, scheduled as syllables, words and phrases.
+$('src-babble').addEventListener('click', () => {
+  if (voice.kind === 'babble') return stopVoice();
+  const ctx = audio();
+  const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+  const amp = ctx.createGain(); amp.gain.value = 0;
+  const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter(), sum = ctx.createGain();
+  f1.type = f2.type = 'bandpass'; f1.Q.value = 7; f2.Q.value = 9; lp.type = 'lowpass'; lp.frequency.value = 3200; sum.gain.value = 0.9;
+  osc.connect(f1); osc.connect(f2); f1.connect(sum); f2.connect(sum); sum.connect(lp).connect(amp);
+  const VOWELS = [[750, 1200], [500, 1850], [320, 2250], [520, 920], [350, 800], [650, 1650]];
+  let t = ctx.currentTime + 0.15;
+  const schedule = () => {
+    while (t < ctx.currentTime + 6) {
+      const words = 3 + Math.floor(Math.random() * 6);
+      let pitch = 150 + Math.random() * 20;
+      for (let w = 0; w < words; w++) {
+        const syl = 1 + Math.floor(Math.random() * 3);
+        for (let s = 0; s < syl; s++) {
+          const d = 0.1 + Math.random() * 0.15, [a, b] = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+          const stress = s === 0 && Math.random() < 0.5 ? 1.25 : 1;
+          f1.frequency.setTargetAtTime(a, t, 0.03); f2.frequency.setTargetAtTime(b, t, 0.03);
+          osc.frequency.setTargetAtTime(pitch * (stress > 1 ? 1.12 : 1), t, 0.04);
+          amp.gain.setTargetAtTime(0.32 * stress, t, 0.025);
+          amp.gain.setTargetAtTime(0.05, t + d * 0.7, 0.03);
+          t += d; pitch *= 0.985;
+        }
+        amp.gain.setTargetAtTime(0, t, 0.02);
+        t += 0.04 + Math.random() * 0.08;
+      }
+      t += 0.35 + Math.random() * 0.6;
+    }
+  };
+  schedule();
+  const timer = setInterval(schedule, 1000);
+  osc.start();
+  useSource(amp, 'babble', () => { clearInterval(timer); osc.stop(); });
+});
+
+// Uploaded audio file (one media element; createMediaElementSource may only be called once per element).
+const fileAudio = new Audio(); let fileNode = null;
+$('src-file').addEventListener('change', (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const ctx = audio();
+  fileNode ||= ctx.createMediaElementSource(fileAudio);
+  fileAudio.src = URL.createObjectURL(file);
+  fileAudio.play();
+  useSource(fileNode, 'file', () => fileAudio.pause());
+  e.target.value = '';
+});
+
+function analyse(dt, now) {
+  let level = 0;
+  if (voice.kind) {
+    voice.analyser.getFloatTimeDomainData(voice.data);
+    let s = 0; for (const x of voice.data) s += x * x;
+    const db = 10 * Math.log10(s / voice.data.length + 1e-10);
+    level = THREE.MathUtils.clamp((db + 52) / 36, 0, 1);
+  }
+  const tau = level > voice.env ? 0.025 : 0.09;
+  voice.env += (level - voice.env) * (1 - Math.exp(-dt / tau));
+  voice.envSlow += (voice.env - voice.envSlow) * (1 - Math.exp(-dt / 0.6));
+  if (voice.env - voice.envSlow > 0.16 && now - voice.lastOnset > 0.22) {
+    voice.lastOnset = now;
+    nod.v += 16 * (val('nod') / 100) * (0.6 + 0.4 * Math.random());
+    sway.target = (Math.random() * 2 - 1) * 2.5 * (val('nod') / 100);
+  }
+  return level;
+}
+
+// ---------- local-only: microphone and OpenAI Realtime over WebRTC (needs web/server.mjs) ----------
+const log = (msg) => { const el = $('rt-log'); el.textContent = (msg + '\n' + el.textContent).slice(0, 4000); };
+let listening = 0, micAnalyser = null, micData = null;
+fetch('/api/realtime/health').then((r) => (r.ok ? r.json() : null)).then((h) => {
+  if (!h) return;
+  $('src-mic').hidden = false;
+  $('rt').hidden = false;
+  $('rt-hint').textContent = h.configured ? 'Connected to the local server. Talk to the reindeer: its own voice drives the motion, and your voice makes it listen.' : 'Local server found, but OPENAI_API_KEY is not set, so only the microphone works.';
+  $('rt-connect').disabled = !h.configured;
+}).catch(() => {});
+
+$('src-mic').addEventListener('click', async () => {
+  if (voice.kind === 'mic') return stopVoice();
+  const ctx = audio();
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } });
+  useSource(ctx.createMediaStreamSource(stream), 'mic', () => stream.getTracks().forEach((t) => t.stop()), false);
+});
+
+let rt = null;
+$('rt-connect').addEventListener('click', async () => {
+  $('rt-connect').disabled = true;
+  try {
+    const ctx = audio();
+    const session = await (await fetch('/api/realtime/session', { method: 'POST' })).json();
+    if (!session.value) throw new Error(session.error?.message || 'No ephemeral key');
+    const pc = new RTCPeerConnection();
+    const sink = new Audio(); sink.muted = true; sink.autoplay = true; // Chrome only feeds remote audio to WebAudio while an element consumes it.
+    pc.ontrack = (e) => {
+      sink.srcObject = e.streams[0];
+      useSource(ctx.createMediaStreamSource(e.streams[0]), 'realtime', null);
+      log('remote audio track');
+    };
+    const mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    pc.addTrack(mic.getAudioTracks()[0], mic);
+    micAnalyser = ctx.createAnalyser(); micAnalyser.fftSize = 1024; micData = new Float32Array(1024);
+    ctx.createMediaStreamSource(mic).connect(micAnalyser);
+    const dc = pc.createDataChannel('oai-events');
+    dc.onmessage = (e) => {
+      const ev = JSON.parse(e.data);
+      if (ev.type === 'input_audio_buffer.speech_started') listening = 1;
+      if (ev.type === 'input_audio_buffer.speech_stopped') listening = 0;
+      if (/^(output_audio_buffer|input_audio_buffer\.speech|response\.done|error)/.test(ev.type)) log(ev.type + (ev.error ? ': ' + ev.error.message : ''));
+    };
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await fetch('https://api.openai.com/v1/realtime/calls', {
+      method: 'POST', body: offer.sdp, headers: { Authorization: `Bearer ${session.value}`, 'Content-Type': 'application/sdp' },
+    });
+    if (!answer.ok) throw new Error('SDP exchange failed: ' + answer.status + ' ' + (await answer.text()));
+    await pc.setRemoteDescription({ type: 'answer', sdp: await answer.text() });
+    rt = { pc, mic };
+    $('rt-hangup').disabled = false;
+    log('connected');
+  } catch (err) {
+    log('error: ' + err.message);
+    $('rt-connect').disabled = false;
+  }
+});
+$('rt-hangup').addEventListener('click', () => {
+  rt?.pc.close(); rt?.mic.getTracks().forEach((t) => t.stop()); rt = null; micAnalyser = null; listening = 0;
+  stopVoice(); $('rt-hangup').disabled = true; $('rt-connect').disabled = false; log('hung up');
+});
+
+// ---------- ASCII: render to a small target, then draw one glyph per cell in the brand gradient ----------
+// Brand cues (brand.vaadin.com): mono type for ASCII graphics, blue #056ff0 to #03f7ff on black.
+const asciiCv = $('asciicv'), actx = asciiCv.getContext('2d');
+const asciiRT = new THREE.WebGLRenderTarget(1, 1);
+const ASCII_SETS = { ramp: ' .:-=+*#%@', binary: ' .:01', code: ' .:;=+<>{}#' };
+const ASCII_SS = 2; // supersampling per cell side
+const asciiColors = Array.from({ length: 24 }, (_, i) => {
+  const t = i / 23, a = [5, 111, 240], b = [3, 247, 255];
+  const c = a.map((x, k) => Math.round(x + (b[k] - x) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+});
+const asciiState = { buf: new Uint8Array(4), lo: 0.3, hi: 0.7 };
+function renderAscii() {
+  const dpr = Math.min(devicePixelRatio, 2), w = stage.clientWidth, h = stage.clientHeight;
+  const size = val('asciisize'), cw = size * 0.6, chh = size * 1.1;
+  const cols = Math.floor(w / cw), rows = Math.floor(h / chh), W = cols * ASCII_SS, H = rows * ASCII_SS;
+  if (asciiCv.width !== Math.round(w * dpr) || asciiCv.height !== Math.round(h * dpr)) { asciiCv.width = Math.round(w * dpr); asciiCv.height = Math.round(h * dpr); }
+  if (asciiRT.width !== W || asciiRT.height !== H) { asciiRT.setSize(W, H); asciiState.buf = new Uint8Array(W * H * 4); }
+  renderer.setRenderTarget(asciiRT); renderer.render(scene, cam); renderer.setRenderTarget(null);
+  const buf = asciiState.buf;
+  renderer.readRenderTargetPixels(asciiRT, 0, 0, W, H, buf);
+  // Per-cell coverage and perceptual luminance (render target holds linear values, rows bottom-up).
+  const L = new Float32Array(cols * rows), cov = new Float32Array(cols * rows);
+  let lo = 1, hi = 0;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    let n = 0, sum = 0;
+    for (let y = 0; y < ASCII_SS; y++) for (let x = 0; x < ASCII_SS; x++) {
+      const o = ((H - 1 - (r * ASCII_SS + y)) * W + c * ASCII_SS + x) * 4;
+      if (buf[o] + buf[o + 1] + buf[o + 2] > 6) { n++; sum += Math.pow((0.2126 * buf[o] + 0.7152 * buf[o + 1] + 0.0722 * buf[o + 2]) / 255, 1 / 2.2); }
+    }
+    const i = r * cols + c;
+    cov[i] = n / (ASCII_SS * ASCII_SS);
+    L[i] = n ? sum / n : 0;
+    if (cov[i] >= 0.5) { lo = Math.min(lo, L[i]); hi = Math.max(hi, L[i]); }
+  }
+  // Auto-levels, eased so the glyphs don't flicker.
+  asciiState.lo += (lo - asciiState.lo) * 0.1; asciiState.hi += (hi - asciiState.hi) * 0.1;
+  const span = Math.max(0.05, asciiState.hi - asciiState.lo), set = ASCII_SETS[$('asciiset').value], edges = $('asciiedges').checked;
+  actx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  actx.fillStyle = '#000'; actx.fillRect(0, 0, w, h);
+  actx.font = `500 ${size}px "JetBrains Mono", ui-monospace, monospace`;
+  actx.textBaseline = 'top';
+  const ox = (w - cols * cw) / 2, oy = (h - rows * chh) / 2;
+  const at = (r, c) => (r < 0 || c < 0 || r >= rows || c >= cols || cov[r * cols + c] < 0.5 ? 0 : L[r * cols + c]);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const i = r * cols + c;
+    if (cov[i] < 0.5) continue;
+    const t = Math.min(1, Math.max(0, (L[i] - asciiState.lo) / span));
+    let ch = set[1 + Math.min(set.length - 2, Math.floor(t * (set.length - 1)))], tone = t;
+    if (edges) {
+      const gx = at(r, c + 1) - at(r, c - 1), gy = at(r + 1, c) - at(r - 1, c);
+      if (Math.hypot(gx, gy) > 0.09) {
+        const ex = -gy, ey = gx; // edge direction, screen y down
+        ch = Math.abs(ex) > 2 * Math.abs(ey) ? '-' : Math.abs(ey) > 2 * Math.abs(ex) ? '|' : ex * ey > 0 ? '\\' : '/';
+        tone = Math.min(1, t + 0.35);
+      }
+    }
+    actx.fillStyle = asciiColors[Math.round(tone * 23)];
+    actx.fillText(ch, ox + c * cw, oy + r * chh);
+  }
+}
+
+// ---------- frame loop ----------
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), 1 / 20), now = clock.elapsedTime, wall = performance.now() / 1000;
+  const tab = state.tab, idleLife = $('idle').checked && !REDUCED;
+
+  // 01: whole-model turn (Reindeer.Rig root)
+  if (tab === 'turn') {
+    const mode = $('turnmode').value;
+    turn.target = mode === 'spin' ? state.spinTarget
+      : !state.hover ? 0
+      : mode === 'face' ? val('turnangle')
+      : THREE.MathUtils.clamp(-state.pointer.x, -1, 1) * val('turnangle');
+  } else {
+    turn.target = Math.round(turn.x / 360) * 360;
+  }
+  turn.step(dt);
+  if (Math.abs(turn.x - turn.target) < 0.01 && Math.abs(turn.v) < 0.01 && turn.target % 360 === 0) { turn.x = turn.target = state.spinTarget = 0; }
+  rig.rotation.y = turn.x * DEG;
+
+  // 02: head-only gaze
+  const gazing = tab === 'gaze' || (tab === 'voice' && $('voicegaze').checked);
+  const target = gazing ? desiredGaze(wall) : { yaw: BASE_YAW, pitch: 0 };
+  const smooth = $('gazestyle').value === 'smooth';
+  gazeYaw.k = gazePitch.k = smooth ? 22 : 75;
+  gazeYaw.c = gazePitch.c = 2 * Math.sqrt(gazeYaw.k);
+  gazeYaw.target = target.yaw; gazePitch.target = target.pitch;
+  gazeYaw.step(dt); gazePitch.step(dt);
+
+  // 03: voice
+  const level = analyse(dt, now);
+  const speaking = tab === 'voice' ? voice.envSlow : 0;
+  jaw.target = tab === 'voice' ? Math.pow(voice.env, 0.8) * (val('jaw') / 100) : 0;
+  jaw.step(dt);
+  if (state.forceJaw != null) jaw.x = state.forceJaw;
+  nod.target = 0; nod.step(dt);
+  if (speaking < 0.05) sway.target = 0;
+  sway.step(dt);
+  if (micAnalyser) {
+    micAnalyser.getFloatTimeDomainData(micData);
+    let s = 0; for (const x of micData) s += x * x;
+    listening = Math.max(listening * 0.98, THREE.MathUtils.clamp((10 * Math.log10(s / 1024 + 1e-10) + 50) / 30, 0, 1));
+  }
+  lift.target = -2.2 * Math.min(1, speaking * 3) - 1.5 * listening;
+  lift.step(dt);
+  U.uGlow.value = tab === 'voice' ? voice.env * (val('glow') / 100) * 0.35 : 0;
+
+  // Compose head pose relative to chest.
+  const bob = idleLife ? Math.sin(now * 1.3) * 0.35 : 0;
+  const yaw = gazeYaw.x + sway.x;
+  const roll = $('tilt').checked ? -(gazeYaw.x - BASE_YAW) * 0.12 + sway.x * 0.4 : 0;
+  setHead(yaw, gazePitch.x + nod.x + lift.x + bob, roll);
+  for (const p of parts) if (p.kind === 'head') p.mesh.morphTargetInfluences[0] = Math.max(0, jaw.x);
+
+  // Ears: perk with speech/listening, flick when idle.
+  for (const e of ears) {
+    if (idleLife && now > e.nextFlick) { e.s.v += (Math.random() < 0.5 ? -1 : 1) * 9; e.nextFlick = now + 3 + Math.random() * 6; }
+    e.s.target = 0.45 * Math.min(1, speaking * 3) + 0.6 * listening;
+    e.s.step(dt);
+    e.part.mesh.morphTargetInfluences[0] = e.s.x;
+  }
+
+  // Exact logo framing on the logo tab; a little more room for antlers elsewhere.
+  zoomOut.target = tab === 'turn' && !state.hover && val('overlay') > 0 ? 1 : 1.1;
+  if (Math.abs(zoomOut.target - zoomOut.x) > 1e-4 || Math.abs(zoomOut.v) > 1e-4) { zoomOut.step(dt); resize(); }
+  ref.hidden = tab !== 'turn';
+  $('meter').style.width = (level * 100).toFixed(1) + '%';
+  $('hud-l').textContent = `head yaw ${(yaw - BASE_YAW).toFixed(1).padStart(5)}°  pitch ${(gazePitch.x + nod.x + lift.x).toFixed(1).padStart(5)}°`;
+  $('hud-r').textContent = tab === 'voice' ? `jaw ${(jaw.x * JAW_MAX / DEG).toFixed(1)}°` : tab === 'turn' ? `turn ${turn.x.toFixed(1)}°  fit ×${bakeInfo.fit.scale}` : `${bakeInfo.matched}/${bakeInfo.groups} facets from logo`;
+  const ascii = $('ascii').checked;
+  asciiCv.hidden = !ascii; $('gl').style.visibility = ascii ? 'hidden' : 'visible';
+  if (ascii) renderAscii(); else renderer.render(scene, cam);
+  requestAnimationFrame(frame);
+}
+applyShading();
+frame();
+window.__lab = { bakeInfo, U, scene, headBone, state };
+</script>

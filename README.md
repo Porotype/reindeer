@@ -11,6 +11,7 @@ An editable, deliberately low-poly reindeer head and neck for web animation and 
 | `scripts/export.py` | Portable GLB/STL export and geometry checks |
 | `exports/` | One current set of convenient derivatives and validation results |
 | `docs/model-notes.md` | Modeling decisions and remaining work |
+| `web/` | Browser motion lab: logo-matched shading, gaze, voice-driven talking, ASCII (see `web/README.md`) |
 
 ## Open and edit
 

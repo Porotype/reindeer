@@ -8,4 +8,5 @@
 - Preserve the narrowed/tapered neck front and the broad rear cheek planes.
 - Physical print size is undecided. Never treat the unitless STL as a final millimetre-sized print.
 - After a model change, run the export command in `README.md`, inspect relevant views and update the current preview/notes. Commit one current set of exports, not every intermediate version.
+- Web experiments live in `web/` and are documented in `web/README.md`; they read `exports/reindeer.glb` and never modify the master.
 - Keep scripts portable: resolve paths from the repository, use Blender's bundled Python, and do not require MCP for export. Do not commit machine-specific paths or local scratch files.
