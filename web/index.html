@@ -188,12 +188,18 @@ code { font: 12.5px var(--font-mono); color: var(--text); }
           <label class="check"><input type="checkbox" id="ascii"> Render as ASCII</label>
           <div class="row"><label for="asciiset">Characters</label>
             <select id="asciiset">
+              <option value="vaadin">Vaadin brand</option>
               <option value="ramp">Shade ramp</option>
               <option value="binary">Binary</option>
               <option value="code">Code glyphs</option>
             </select></div>
           <div class="row"><label for="asciisize">Cell size</label><input type="range" id="asciisize" min="6" max="20" value="10"><output id="asciisize-o"></output></div>
-          <label class="check"><input type="checkbox" id="asciiedges" checked> Draw facet edges as line glyphs</label>
+          <div class="row"><label for="asciicolor">Colour</label>
+            <select id="asciicolor">
+              <option value="sampled">Brand ASCII (sampled)</option>
+              <option value="gradient">Brand gradient</option>
+            </select></div>
+          <label class="check"><input type="checkbox" id="asciiedges"> Draw facet edges as line glyphs</label>
         </div>
         <div class="ctl" id="rt" hidden>
           <span class="label">OpenAI Realtime (WebRTC)</span>
@@ -805,17 +811,28 @@ $('rt-hangup').addEventListener('click', () => {
 // Brand cues (brand.vaadin.com): mono type for ASCII graphics, blue #056ff0 to #03f7ff on black.
 const asciiCv = $('asciicv'), actx = asciiCv.getContext('2d');
 const asciiRT = new THREE.WebGLRenderTarget(1, 1);
-const ASCII_SETS = { ramp: ' .:-=+*#%@', binary: ' .:01', code: ' .:;=+<>{}#' };
+const ASCII_SETS = { vaadin: ' :-=>+%a', ramp: ' .:-=+*#%@', binary: ' .:01', code: ' .:;=+<>{}#' };
+// Vaadin brand set, read from the brand examples: runs of the brightest glyph ('a') start with V, A, d or n,
+// sometimes spelling the whole word; a few lowercase letters are sprinkled through darker areas.
+const VAADIN_PREFIXES = ['V', 'V', 'AV', 'Ad', 'Vn', 'A$', 'dV', 'Vd', '$A', 'AA'];
+const VAADIN_SPRINKLE = 'vdni';
+// Lower tone bound per glyph of the brand set (index 1..7); 'a' takes the bright half, '=' and '>' the mid-tones.
+const VAADIN_LEVELS = [0, 0, 0.1, 0.2, 0.33, 0.42, 0.48, 0.54];
+const hash = (a, b) => { let h = Math.imul(a, 374761393) ^ Math.imul(b, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const ASCII_SS = 2; // supersampling per cell side
-const asciiColors = Array.from({ length: 24 }, (_, i) => {
-  const t = i / 23, a = [5, 111, 240], b = [3, 247, 255];
-  const c = a.map((x, k) => Math.round(x + (b[k] - x) * t));
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
-});
+// Colour ramps: 'sampled' is measured from the brand ASCII examples (dark navy to cyan), 'gradient' is the brand gradient.
+const ASCII_STOPS = { sampled: ['0E3B61', '0E70B5', '11A5E2', '11C5E4'], gradient: ['056FF0', '03F7FF'] };
+const asciiColors = Object.fromEntries(Object.entries(ASCII_STOPS).map(([k, stops]) => [k, Array.from({ length: 24 }, (_, i) => {
+  const t = i / 23 * (stops.length - 1), j = Math.min(stops.length - 2, Math.floor(t)), f = t - j;
+  const a = hexToSrgb(stops[j]), b = hexToSrgb(stops[j + 1]);
+  return `rgb(${a.map((x, n) => Math.round(x + (b[n] - x) * f)).join(',')})`;
+})]));
 const asciiState = { buf: new Uint8Array(4), lo: 0.3, hi: 0.7 };
 function renderAscii() {
   const dpr = Math.min(devicePixelRatio, 2), w = stage.clientWidth, h = stage.clientHeight;
-  const size = val('asciisize'), cw = size * 0.6, chh = size * 1.1;
+  const setName = $('asciiset').value, brand = setName === 'vaadin';
+  // The brand set uses square, widely tracked cells; the others pack glyphs densely.
+  const size = val('asciisize'), cw = brand ? size * 1.55 : size * 0.6, chh = brand ? size * 1.55 : size * 1.1;
   const cols = Math.floor(w / cw), rows = Math.floor(h / chh), W = cols * ASCII_SS, H = rows * ASCII_SS;
   if (asciiCv.width !== Math.round(w * dpr) || asciiCv.height !== Math.round(h * dpr)) { asciiCv.width = Math.round(w * dpr); asciiCv.height = Math.round(h * dpr); }
   if (asciiRT.width !== W || asciiRT.height !== H) { asciiRT.setSize(W, H); asciiState.buf = new Uint8Array(W * H * 4); }
@@ -838,18 +855,42 @@ function renderAscii() {
   }
   // Auto-levels, eased so the glyphs don't flicker.
   asciiState.lo += (lo - asciiState.lo) * 0.1; asciiState.hi += (hi - asciiState.hi) * 0.1;
-  const span = Math.max(0.05, asciiState.hi - asciiState.lo), set = ASCII_SETS[$('asciiset').value], edges = $('asciiedges').checked;
+  const span = Math.max(0.05, asciiState.hi - asciiState.lo), set = ASCII_SETS[setName], edges = $('asciiedges').checked;
+  const palette = asciiColors[$('asciicolor').value];
   actx.setTransform(dpr, 0, 0, dpr, 0, 0);
   actx.fillStyle = '#000'; actx.fillRect(0, 0, w, h);
   actx.font = `500 ${size}px "JetBrains Mono", ui-monospace, monospace`;
-  actx.textBaseline = 'top';
+  actx.textBaseline = 'middle'; actx.textAlign = 'center';
   const ox = (w - cols * cw) / 2, oy = (h - rows * chh) / 2;
   const at = (r, c) => (r < 0 || c < 0 || r >= rows || c >= cols || cov[r * cols + c] < 0.5 ? 0 : L[r * cols + c]);
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    const i = r * cols + c;
-    if (cov[i] < 0.5) continue;
-    const t = Math.min(1, Math.max(0, (L[i] - asciiState.lo) / span));
-    let ch = set[1 + Math.min(set.length - 2, Math.floor(t * (set.length - 1)))], tone = t;
+  const top = set.length - 1;
+  for (let r = 0; r < rows; r++) {
+    // Brightest-glyph runs in this row, for the brand prefixes.
+    const level = new Int8Array(cols), tones = new Float32Array(cols), glyph = new Array(cols).fill('');
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      if (cov[i] < 0.5) { level[c] = -1; continue; }
+      tones[c] = Math.min(1, Math.max(0, (L[i] - asciiState.lo) / span));
+      if (brand) { let l = top; while (l > 1 && tones[c] < VAADIN_LEVELS[l]) l--; level[c] = l; }
+      else level[c] = 1 + Math.min(top - 1, Math.floor(tones[c] * top));
+      glyph[c] = set[level[c]];
+    }
+    if (brand) {
+      for (let c = 0; c < cols; c++) {
+        if (level[c] === top && (c === 0 || level[c - 1] !== top)) {
+          let end = c; while (end < cols && level[end] === top) end++;
+          const len = end - c, h = hash(r, c);
+          const word = len >= 7 && h < 0.3 ? 'Vaadin' : VAADIN_PREFIXES[Math.floor(h * VAADIN_PREFIXES.length)];
+          for (let k = 0; k < Math.min(word.length, len); k++) glyph[c + k] = word[k];
+        } else if (level[c] > 0 && level[c] < top && hash(c, r * 7 + 3) < 0.035) {
+          glyph[c] = VAADIN_SPRINKLE[Math.floor(hash(r, c * 13) * VAADIN_SPRINKLE.length)];
+        }
+      }
+    }
+    for (let c = 0; c < cols; c++) {
+    if (level[c] < 0) continue;
+    const t = tones[c];
+    let ch = glyph[c], tone = brand && /[VAdn$]/.test(ch) ? Math.min(1, t + 0.15) : t;
     if (edges) {
       const gx = at(r, c + 1) - at(r, c - 1), gy = at(r + 1, c) - at(r - 1, c);
       if (Math.hypot(gx, gy) > 0.09) {
@@ -858,8 +899,9 @@ function renderAscii() {
         tone = Math.min(1, t + 0.35);
       }
     }
-    actx.fillStyle = asciiColors[Math.round(tone * 23)];
-    actx.fillText(ch, ox + c * cw, oy + r * chh);
+    actx.fillStyle = palette[Math.round(tone * 23)];
+    actx.fillText(ch, ox + (c + 0.5) * cw, oy + (r + 0.5) * chh);
+    }
   }
 }
 

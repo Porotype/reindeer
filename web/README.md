@@ -67,10 +67,17 @@ From `exports/reindeer.glb`, the only runtime asset besides `reference/Reindeer.
   - The visual lead is a `DelayNode` on the audible path only, so analysis runs ahead of what you hear.
 - **ASCII (checkbox in 03, works on every tab).**
   - Renders the normal shaded scene into a small target (2×2 samples per cell) and computes coverage plus perceptual luminance per cell, with eased auto-levels.
-  - Covered cells pick a glyph from the set (`ramp` ` .:-=+*#%@`, `binary` ` .:01`, `code` ` .:;=+<>{}#`).
-  - With edges on, a luminance-gradient threshold (0.09) swaps in `- | / \` along facet and silhouette edges.
-  - Colour runs through the brand gradient `#056ff0 → #03f7ff` on black. The font is JetBrains Mono, standing in for the brand mono face NB International Mono.
-  - The brand's own Vascii generator (linked from brand.vaadin.com as `github.com/vaadin/vascii`) was not accessible, so its ramp and algorithm are not matched yet.
+  - **Vaadin brand** set (default), read from the brand-site examples `reindeer-art-example2` and `reindeer-layout-example1`:
+    - Glyphs ` :-=>+%a` on square, widely tracked cells (pitch 1.55 × font size).
+    - Uneven tone thresholds (`VAADIN_LEVELS`) give `a` the bright half and `=`/`>` the mid-tones.
+    - Each run of `a` starts with a prefix from `VAADIN_PREFIXES` (V, AV, Ad, Vn, A$…), or spells `Vaadin` when the run is at least 7 cells (30% of such runs).
+    - About 3.5% of mid-tone cells get a stray `v d n i`.
+    - Choices are hashed from row and column, so they don't flicker while still.
+  - Other sets pack glyphs densely: `ramp` ` .:-=+*#%@`, `binary` ` .:01`, `code` ` .:;=+<>{}#`.
+  - With "facet edges" on (off by default; brand examples don't use it), a luminance-gradient threshold (0.09) swaps in `- | / \` along facet and silhouette edges.
+  - Colour: **sampled** (default) is a 4-stop ramp measured from the brand examples, `#0E3B61 → #0E70B5 → #11A5E2 → #11C5E4`. Letter prefixes sit one step brighter. The alternative is the brand gradient `#056ff0 → #03f7ff`.
+  - The font is JetBrains Mono, standing in for the brand mono face NB International Mono.
+  - The brand's own Vascii generator (linked as `github.com/vaadin/vascii`) was not accessible, so this matches its output by eye, not its algorithm.
 
 ## OpenAI Realtime wiring
 
