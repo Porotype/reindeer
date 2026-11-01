@@ -1,0 +1,19 @@
+# Exploratory versions stay on this machine; Git records future revisions.
+/work/
+/renders/
+/Vaadin-Reindeer-handoff/
+/Reindeer.png
+/Reindeer.svg
+
+# Track one current set of derivatives.
+/exports/*
+!/exports/reindeer.glb
+!/exports/reindeer-normalized.stl
+!/exports/validation.json
+
+/build/
+__pycache__/
+*.py[cod]
+*.blend[0-9]*
+*.log
+.DS_Store
