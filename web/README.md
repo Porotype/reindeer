@@ -1,6 +1,6 @@
 # Reindeer motion lab (web)
 
-Browser experiments with the V19 model: logo-matched shading with a hover turn, head-only gaze, voice-driven talking and a live ASCII rendering. It's a single dependency-free page that uses Three.js 0.170.0 from jsDelivr through an import map.
+Browser experiments with the V20 model: logo-matched shading with a drag-to-rotate inspection view (and the earlier hover turns), head-only gaze, voice-driven talking and a live ASCII rendering. It's a single dependency-free page that uses Three.js 0.170.0 from jsDelivr through an import map.
 
 | File | Purpose |
 | --- | --- |
@@ -24,7 +24,7 @@ From `exports/reindeer.glb`, the only runtime asset besides `reference/Reindeer.
 
 - glTF space: Y up, muzzle toward **+Z**, X is width. Units are normalized design units.
 - Five skinned meshes on one skin with two joints. **Chest** sits at the neck base and is never moved. **Head** is at (0, 4.798, −0.05) relative to the chest, near the jaw hinge. Ears and antlers are 100% Head. Neck vertices between y 3.6 and 4.6 are blended 10–33% to Chest, so rotating Head bends the upper neck softly.
-- The artwork pose is a **9° head yaw** (`BASE_YAW`). The GLB's review animation is ignored, and the pose is set directly on the Head bone.
+- The artwork pose is a **19° head yaw** (`BASE_YAW`). The GLB's review animation is ignored, and the pose is set directly on the Head bone.
 - GLTFLoader sanitizes node names (`Camera.Logo` becomes `CameraLogo`). Look them up through `THREE.PropertyBinding.sanitizeNodeName`, as `byName()` does.
 - `Camera.Logo` is orthographic with half-height 5.95, matched to the 287×500 artwork.
 
@@ -53,7 +53,7 @@ From `exports/reindeer.glb`, the only runtime asset besides `reference/Reindeer.
 - **Turn (tab 01).** Rotates the whole `Reindeer.Rig` about Y with an underdamped spring (k 38, ζ 0.62). The modes are face the viewer (default 48°), follow the pointer, and a 360° spin on enter.
 - **Gaze (tab 02, and in 03 while "Keep following the pointer" is on).**
   - The pointer ray from the orthographic camera is moved `depth` units toward the viewer from the head pivot. That direction, in chest space, gives yaw and pitch.
-  - Limits are yaw −30…65° (absolute, including the 9° base) and pitch −25…18°, then scaled by intensity.
+  - Limits are yaw −30…65° (absolute, including the 19° base) and pitch −25…18°, then scaled by intensity.
   - "Glance and hold" only retargets when the target moves more than 6°, and uses a fast critically damped spring (k 75). "Smooth" uses k 22.
   - Roll is −0.12 × yaw.
   - After 3.5 s without pointer movement, the head returns to rest with random small glances. Idle life also adds ear flicks every 3–9 s and a ±0.35° bob.

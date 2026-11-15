@@ -1,6 +1,6 @@
 # Vaadin reindeer reconstruction
 
-An editable, deliberately low-poly reindeer head and neck for web animation and 3D printing. The current model is **V19**, authored in **Blender 5.3.0 Beta**.
+An editable, deliberately low-poly reindeer head and neck for web animation and 3D printing. The current model is **V20**, authored in **Blender 5.3.0 Beta**.
 
 ![Current model](docs/preview.png)
 
@@ -15,7 +15,7 @@ An editable, deliberately low-poly reindeer head and neck for web animation and 
 
 ## Open and edit
 
-Open `model/reindeer.blend` in Blender. `Reindeer.Rig` has a `head_yaw_deg` custom property, currently 9 degrees. Ears and antlers follow the head. The logo camera is fitted independently from the head turn; the overview camera has more room for animation.
+Open `model/reindeer.blend` in Blender. `Reindeer.Rig` has a `head_yaw_deg` custom property, currently 19 degrees. Ears and antlers follow the head. The logo camera is fitted independently from the head turn; the overview camera has more room for animation.
 
 The master contains broad, flat facets and editable quads. The STL joins the five mesh volumes into one closed component; the GLB retains the rig and a short head-turn animation.
 

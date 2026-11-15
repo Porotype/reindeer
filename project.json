@@ -1,6 +1,6 @@
 {
   "name": "Vaadin reindeer reconstruction",
-  "source_revision": "V19",
+  "source_revision": "V20",
   "authoring_blender": "5.3.0 Beta",
   "master": "model/reindeer.blend",
   "meshes": [

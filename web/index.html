@@ -106,7 +106,7 @@ code { font: 12.5px var(--font-mono); color: var(--text); }
 <div class="wrap">
   <header>
     <h1>Reindeer <span>Motion Lab</span></h1>
-    <p class="sub">V19 model, logo camera, live. Three experiments share one stage: hover turn, cursor gaze with a fixed neck, and voice-driven talking.</p>
+    <p class="sub">V20 model, logo camera, live. Three experiments share one stage: drag-to-inspect turn, cursor gaze with a fixed neck, and voice-driven talking.</p>
   </header>
 
   <div class="lab">
@@ -126,7 +126,7 @@ code { font: 12.5px var(--font-mono); color: var(--text); }
       </div>
 
       <section class="pane" id="pane-turn" role="tabpanel">
-        <h2>Logo match, turns on hover</h2>
+        <h2>Logo match, drag to inspect</h2>
         <p>Facet colours are sampled from the original artwork through the logo camera, then relit as the model moves. At rest it shows the logo's own blues.</p>
         <div class="ctl">
           <div class="row"><label for="shading">Shading</label>
@@ -135,17 +135,19 @@ code { font: 12.5px var(--font-mono); color: var(--text); }
               <option value="1">Brand ramp, stepped</option>
               <option value="2">GLB materials, lit</option>
             </select></div>
-          <div class="row"><label for="turnmode">On hover</label>
+          <div class="row"><label for="turnmode">Interaction</label>
             <select id="turnmode">
-              <option value="face">Turn toward viewer</option>
-              <option value="follow">Follow pointer</option>
-              <option value="spin">Full turn</option>
+              <option value="drag">Drag to rotate</option>
+              <option value="face">Hover: turn toward viewer</option>
+              <option value="follow">Hover: follow pointer</option>
+              <option value="spin">Hover: full turn</option>
             </select></div>
           <div class="row"><label for="turnangle">Turn angle</label><input type="range" id="turnangle" min="10" max="80" value="48"><output id="turnangle-o"></output></div>
           <div class="row"><label for="overlay">Logo overlay</label><input type="range" id="overlay" min="0" max="100" value="0"><output id="overlay-o"></output></div>
           <label class="check"><input type="checkbox" id="diff"> Show overlay as difference</label>
+          <div class="btns"><button class="btn" id="resetview">Back to logo view</button></div>
         </div>
-        <p class="note">Move the pointer over the stage. Drag the overlay to compare the rest pose with <code>Reindeer.png</code>.</p>
+        <p class="note">Drag on the stage to rotate the whole model, scroll to zoom, double-click to return to the logo view. Facets the logo never shows take brand-ramp colours; switch shading to GLB materials for an even look. Drag the overlay slider to compare the rest pose with <code>Reindeer.png</code>.</p>
       </section>
 
       <section class="pane" id="pane-gaze" role="tabpanel" hidden>
@@ -223,7 +225,7 @@ code { font: 12.5px var(--font-mono); color: var(--text); }
     </div>
     <div>
       <h3>02 · Gaze, neck fixed</h3>
-      <p>The rig already allows this. <code>Head</code> pivots at the jaw hinge (y 4.8), and neck vertices between y 3.6 and 4.6 are blended 10–33% to the chest, so the neck bends softly. The base stays put. Yaw is clamped to −30…65° and pitch to −25…18° relative to the chest, including the 9° artwork turn.</p>
+      <p>The rig already allows this. <code>Head</code> pivots at the jaw hinge (y 4.8), and neck vertices between y 3.6 and 4.6 are blended 10–33% to the chest, so the neck bends softly. The base stays put. Yaw is clamped to −30…65° and pitch to −25…18° relative to the chest, including the 19° artwork turn.</p>
       <p>Glance-and-hold motion, where the head moves only when the target drifts past about 6°, reads as an animal. Continuous tracking reads as a turret. No eye geometry is needed.</p>
     </div>
     <div>
@@ -243,7 +245,7 @@ const ASSETS = window.REINDEER_ASSETS || { glb: '../exports/reindeer.glb', png: 
 // The 13 fills used in reference/Reindeer.svg.
 const SVG_FILLS = ['127CAB', '24AAE1', '10B7E8', '149BCF', '2CA5D6', '27A4D7', '269ECC', '2198C6', '17A3D9', '15ACD9', '14AAD5', '1395C7', '10A5D1'];
 const RAMP_FILLS = ['127CAB', '1395C7', '149BCF', '24AAE1', '10B7E8'];
-const BASE_YAW = 9; // artwork head turn relative to chest (project.json / head_yaw_deg)
+const BASE_YAW = 19; // artwork head turn relative to chest (project.json / head_yaw_deg)
 const LOGO_YMAG = 5.95; // Camera.Logo orthographic half-height
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -358,10 +360,10 @@ gltf.scene.traverse((o) => {
 
 const v = new THREE.Vector3(), q = new THREE.Quaternion();
 // Jaw hinge: rotate the chin rows about an X axis behind the mouth corner (bind space; muzzle is +Z, up is +Y).
-const JAW_PIVOT = new THREE.Vector3(0, 5.43, 0.7), JAW_MAX = 10 * DEG;
+const JAW_PIVOT = new THREE.Vector3(0, 5.45, 0.85), JAW_MAX = 10 * DEG;
 const jawWeight = (p) => {
-  if (p.z > 2.0 && p.y < 5.5) return 1;                 // chin corners, mouth front, chin underside
-  if (p.z > 1.5 && p.y < 5.5) return 0.75;              // jaw underside
+  if (p.z > 2.5 && p.y < 5.6) return 1;                 // chin corners, mouth front, chin underside
+  if (p.z > 1.8 && p.y < 5.5) return 0.75;              // jaw underside
   if (p.z > 0.1 && p.y > 4.8 && p.y < 5.0) return 0.2;  // front throat row
   return 0;
 };
@@ -488,7 +490,7 @@ function bake() {
       const i = 3 * t + k;
       at.color.set(col, i * 3); at.rest[i] = L0;
       v.fromBufferAttribute(pos, i);
-      at.glow[i] = gr.part.kind === 'head' && v.y > 3.4 && v.y < 5.5 && v.z > 0.2 ? 1 : 0;
+      at.glow[i] = gr.part.kind === 'head' && v.y > 3.4 && v.y < 5.6 && v.z > 0.2 ? 1 : 0;
     }
   }
   for (const [part, at] of attrs) {
@@ -559,6 +561,10 @@ const ears = parts.filter((p) => p.kind === 'ear').map((p) => ({ part: p, s: new
 
 // ---------- UI state ----------
 const state = { tab: 'turn', hover: false, pointer: { x: 0, y: 0 }, lastMove: -10, spinTarget: 0 };
+// Free inspection on the logo tab: turntable yaw plus elevation about the screen's horizontal axis.
+const orbit = { yaw: 0, pitch: 0, zoom: 1, drag: null, pivot: new THREE.Vector3(0, 5.2, 0) };
+const orbiting = () => state.tab === 'turn' && $('turnmode').value === 'drag';
+const resetOrbit = () => { orbit.yaw = orbit.pitch = 0; orbit.zoom = 1; resize(); };
 const val = (id) => +$(id).value;
 const bindOut = (id, fmt) => { const f = () => ($(id + '-o').textContent = fmt(val(id))); $(id).addEventListener('input', f); f(); };
 bindOut('turnangle', (x) => x + '°');
@@ -592,6 +598,25 @@ selectTab(location.hash.slice(1));
 
 stage.addEventListener('pointerenter', () => { state.hover = true; if (state.tab === 'turn' && $('turnmode').value === 'spin') state.spinTarget += 360; });
 stage.addEventListener('pointerleave', () => { state.hover = false; });
+stage.addEventListener('pointerdown', (e) => {
+  if (!orbiting()) return;
+  orbit.drag = { x: e.clientX, y: e.clientY }; stage.setPointerCapture(e.pointerId); e.preventDefault();
+});
+stage.addEventListener('pointermove', (e) => {
+  if (!orbit.drag) return;
+  orbit.yaw += (e.clientX - orbit.drag.x) * 0.45;
+  orbit.pitch = THREE.MathUtils.clamp(orbit.pitch + (e.clientY - orbit.drag.y) * 0.45, -89, 89);
+  orbit.drag = { x: e.clientX, y: e.clientY };
+});
+for (const type of ['pointerup', 'pointercancel']) stage.addEventListener(type, () => { orbit.drag = null; });
+stage.addEventListener('wheel', (e) => {
+  if (!orbiting()) return;
+  e.preventDefault();
+  orbit.zoom = THREE.MathUtils.clamp(orbit.zoom * Math.exp(e.deltaY * 0.0015), 0.35, 2.5); resize();
+}, { passive: false });
+stage.addEventListener('dblclick', () => { if (orbiting()) resetOrbit(); });
+$('resetview').addEventListener('click', resetOrbit);
+$('turnmode').addEventListener('change', resetOrbit);
 addEventListener('pointermove', (e) => {
   const r = stage.getBoundingClientRect();
   state.pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
@@ -604,7 +629,7 @@ function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(w, h, false);
-  const y = (frame2d?.ymag ?? LOGO_YMAG) * zoomOut.x, cx = frame2d?.cx ?? 0, cy = frame2d?.cy ?? 0;
+  const y = (frame2d?.ymag ?? LOGO_YMAG) * zoomOut.x * orbit.zoom, cx = frame2d?.cx ?? 0, cy = frame2d?.cy ?? 0;
   cam.top = cy + y; cam.bottom = cy - y; cam.left = cx - y * w / h; cam.right = cx + y * w / h;
   cam.updateProjectionMatrix();
   ref.style.height = (100 / zoomOut.x) + '%';
@@ -914,7 +939,7 @@ function frame() {
   // 01: whole-model turn (Reindeer.Rig root)
   if (tab === 'turn') {
     const mode = $('turnmode').value;
-    turn.target = mode === 'spin' ? state.spinTarget
+    turn.target = mode === 'drag' ? 0 : mode === 'spin' ? state.spinTarget
       : !state.hover ? 0
       : mode === 'face' ? val('turnangle')
       : THREE.MathUtils.clamp(-state.pointer.x, -1, 1) * val('turnangle');
@@ -923,7 +948,17 @@ function frame() {
   }
   turn.step(dt);
   if (Math.abs(turn.x - turn.target) < 0.01 && Math.abs(turn.v) < 0.01 && turn.target % 360 === 0) { turn.x = turn.target = state.spinTarget = 0; }
-  rig.rotation.y = turn.x * DEG;
+  const free = orbiting();
+  stage.style.cursor = free ? (orbit.drag ? 'grabbing' : 'grab') : '';
+  stage.style.touchAction = free ? 'none' : '';
+  if (free) {
+    // Elevation turns about the camera's horizontal axis, around a pivot at head height so the model stays in frame.
+    const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
+    rig.quaternion.setFromAxisAngle(right, orbit.pitch * DEG).multiply(q.setFromAxisAngle(v.set(0, 1, 0), orbit.yaw * DEG));
+    rig.position.copy(orbit.pivot).sub(v.copy(orbit.pivot).applyQuaternion(rig.quaternion));
+  } else {
+    rig.rotation.set(0, turn.x * DEG, 0); rig.position.set(0, 0, 0);
+  }
 
   // 02: head-only gaze
   const gazing = tab === 'gaze' || (tab === 'voice' && $('voicegaze').checked);
@@ -968,12 +1003,12 @@ function frame() {
   }
 
   // Exact logo framing on the logo tab; a little more room for antlers elsewhere.
-  zoomOut.target = tab === 'turn' && !state.hover && val('overlay') > 0 ? 1 : 1.1;
+  zoomOut.target = tab === 'turn' && (!state.hover || free) && val('overlay') > 0 ? 1 : 1.1;
   if (Math.abs(zoomOut.target - zoomOut.x) > 1e-4 || Math.abs(zoomOut.v) > 1e-4) { zoomOut.step(dt); resize(); }
   ref.hidden = tab !== 'turn';
   $('meter').style.width = (level * 100).toFixed(1) + '%';
   $('hud-l').textContent = `head yaw ${(yaw - BASE_YAW).toFixed(1).padStart(5)}°  pitch ${(gazePitch.x + nod.x + lift.x).toFixed(1).padStart(5)}°`;
-  $('hud-r').textContent = tab === 'voice' ? `jaw ${(jaw.x * JAW_MAX / DEG).toFixed(1)}°` : tab === 'turn' ? `turn ${turn.x.toFixed(1)}°  fit ×${bakeInfo.fit.scale}` : `${bakeInfo.matched}/${bakeInfo.groups} facets from logo`;
+  $('hud-r').textContent = tab === 'voice' ? `jaw ${(jaw.x * JAW_MAX / DEG).toFixed(1)}°` : tab === 'turn' ? (free ? `orbit ${orbit.yaw.toFixed(0)}° / ${orbit.pitch.toFixed(0)}°` : `turn ${turn.x.toFixed(1)}°`) + `  fit ×${bakeInfo.fit.scale}` : `${bakeInfo.matched}/${bakeInfo.groups} facets from logo`;
   const ascii = $('ascii').checked;
   asciiCv.hidden = !ascii; $('gl').style.visibility = ascii ? 'hidden' : 'visible';
   if (ascii) renderAscii(); else renderer.render(scene, cam);
@@ -981,5 +1016,5 @@ function frame() {
 }
 applyShading();
 frame();
-window.__lab = { bakeInfo, U, scene, headBone, state };
+window.__lab = { bakeInfo, U, scene, headBone, state, orbit };
 </script>
