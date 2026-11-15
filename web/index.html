@@ -106,7 +106,7 @@ code { font: 12.5px var(--font-mono); color: var(--text); }
 <div class="wrap">
   <header>
     <h1>Reindeer <span>Motion Lab</span></h1>
-    <p class="sub">V18 model, logo camera, live. Three experiments share one stage: hover turn, cursor gaze with a fixed neck, and voice-driven talking.</p>
+    <p class="sub">V19 model, logo camera, live. Three experiments share one stage: hover turn, cursor gaze with a fixed neck, and voice-driven talking.</p>
   </header>
 
   <div class="lab">
@@ -358,11 +358,11 @@ gltf.scene.traverse((o) => {
 
 const v = new THREE.Vector3(), q = new THREE.Quaternion();
 // Jaw hinge: rotate the chin rows about an X axis behind the mouth corner (bind space; muzzle is +Z, up is +Y).
-const JAW_PIVOT = new THREE.Vector3(0, 5.0, 0.7), JAW_MAX = 10 * DEG;
+const JAW_PIVOT = new THREE.Vector3(0, 5.43, 0.7), JAW_MAX = 10 * DEG;
 const jawWeight = (p) => {
-  if (p.z > 1.5 && p.y < 4.76) return 1;
-  if (p.z > 1.5 && p.y < 4.85) return 0.75;
-  if (p.z > 0.3 && p.y > 4.4 && p.y < 4.65) return 0.2;
+  if (p.z > 2.0 && p.y < 5.5) return 1;                 // chin corners, mouth front, chin underside
+  if (p.z > 1.5 && p.y < 5.5) return 0.75;              // jaw underside
+  if (p.z > 0.1 && p.y > 4.8 && p.y < 5.0) return 0.2;  // front throat row
   return 0;
 };
 for (const part of parts) {
@@ -488,7 +488,7 @@ function bake() {
       const i = 3 * t + k;
       at.color.set(col, i * 3); at.rest[i] = L0;
       v.fromBufferAttribute(pos, i);
-      at.glow[i] = gr.part.kind === 'head' && v.y > 3.4 && v.y < 4.95 && v.z > 0.2 ? 1 : 0;
+      at.glow[i] = gr.part.kind === 'head' && v.y > 3.4 && v.y < 5.5 && v.z > 0.2 ? 1 : 0;
     }
   }
   for (const [part, at] of attrs) {

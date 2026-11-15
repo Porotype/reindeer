@@ -1,27 +1,27 @@
 {
-  "source_revision": "V18",
+  "source_revision": "V19",
   "blender_version": "5.3.0 Beta",
   "source_model": "model/reindeer.blend",
   "print_scale": "undecided; coordinates are normalized design units",
   "static_head_yaw_degrees": 9.0,
   "master_body_vertices": 60,
   "master_body_polygons": 108,
-  "on_disk_master_sha256": "42ed65a393b951575eb3dbe770379551ffc8c94d1c1f57d4d8267f73acb5df90",
+  "on_disk_master_sha256": "b375207d76ee64af157e364e60d43febf16272f21c28e98437d393c5ac2ff8a7",
   "print_mesh": {
     "component_sizes": [
-      366
+      318
     ],
     "nonmanifold_edges": 0,
     "boundary_edges": 0,
     "nonadjacent_overlap_candidates": 0,
-    "triangles": 728,
-    "volume_design_units": 19.454793359709505
+    "triangles": 632,
+    "volume_design_units": 19.846537488095276
   },
   "maximum_panel_deviation_by_frame": {
-    "1": 1.6728778602747343e-07,
-    "31": 1.6481601239418383e-07,
-    "61": 1.6728778602747343e-07,
-    "91": 1.7059883238941731e-07,
-    "121": 1.6728778602747343e-07
+    "1": 5.394905370580666e-08,
+    "31": 5.543632381013656e-08,
+    "61": 5.394905370580666e-08,
+    "91": 4.311817786443553e-08,
+    "121": 5.394905370580666e-08
   }
 }
