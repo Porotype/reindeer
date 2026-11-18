@@ -1,8 +1,8 @@
 # Current modeling state
 
-The source is V20. The head/neck mesh has 60 vertices and 108 polygons, including planar crown, forehead, eye, nasal ridge, muzzle side, nose pad and broad rear cheek surfaces. The five mesh objects stay separate in the master so the rig and shapes remain editable. Exporting creates a joined printable derivative.
+The source is V21. The head/neck mesh has 60 vertices and 108 polygons, including planar crown, forehead, eye, nasal ridge, muzzle side, nose pad and broad rear cheek surfaces. The five mesh objects stay separate in the master so the rig and shapes remain editable. Exporting creates a joined printable derivative.
 
-Local coordinates: X is width, Z is up, and the muzzle points toward negative Y. The artwork pose uses a 19-degree head turn relative to the chest; camera framing is independent. The internal `.L` antler is on negative X (the animal's right), with four upper tips. The opposite antler has three. Their upper forks are deliberately asymmetric. The branches have square sections and capped ends.
+Local coordinates: X is width, Z is up, and the muzzle points toward negative Y. The rest (neutral) pose is level and straight ahead. The artwork pose is a 19-degree head turn and a 15-degree upward tilt relative to the chest (`head_yaw_deg`, `head_pitch_deg` on `Reindeer.Rig`); camera framing is independent. The internal `.L` antler is on negative X (the animal's right), with four upper tips. The opposite antler has three. Their upper forks are deliberately asymmetric. The branches have square sections and capped ends.
 
 ## V19: head and antlers fitted to the logo
 
@@ -25,16 +25,23 @@ Turned freely, the V19 muzzle read short and wide. The logo shows the head from 
 
 - The muzzle (ridge top to nose pad) is 2.29 instead of 2.03, about 13% longer; the nose top half-width is 0.37 instead of 0.42.
 - The outline through `Camera.Logo` is the same as V19. Panels remain planar and the print mesh is one closed component.
-- Turn and width are independent dials in `work/refine_v20.py` (local; runs on the V18 master). The upward tilt of the head is still part of the mesh, not a rig property.
+- Turn and width are independent dials in `work/refine_v20.py` (local; runs on the V18 master).
+
+## V21: tilt in the rig, neutral pose straight
+
+Until V20 only the turn was a rig property; the upward tilt of the logo pose was part of the head shape. V21 adds `head_pitch_deg` (driver on the Head bone's X rotation, positive is up) and counter-rotates the rest meshes about the Head bone by 15 degrees, per vertex with its Head weight. Neutral (yaw 0, pitch 0) is level and straight; yaw 19, pitch 15 reproduces V20 to within 0.02 units, and only in the blended upper neck.
+
+- The 15 degrees is a judgement: in V20 the mouth line was level and the crown flat, which reads as chin-up. Neutral now has the mouth line 15 degrees down and the nose bridge about 28.
+- The export writes two printable unions: `reindeer-normalized.stl` in the logo pose and `reindeer-straight-normalized.stl` in the neutral pose. Both are checked the same way.
+- Tried and rejected (V22 trial, `work/refine_v22.py`): reading the ridge down the artwork's neck as the front of a chest facing the viewer, with a 71-degree head turn. A symmetric chest loses the artwork's neck outline (the left edge bulges low, the right edge higher, as a neck seen from the side does), and the neutral pose wrings the throat join.
 
 ## Web motion lab
 
-`web/` runs the exported GLB in the browser (see `web/README.md`). Jaw and ear motion are runtime morph targets there, not part of the master. A silhouette fit against `Reindeer.png` suggests that `Camera.Logo` framing needs about 1.088× scale and a small offset to match the artwork. In V19 the head and antlers follow the artwork in this view; the neck is about 10% narrower at the back than drawn. The jaw morph thresholds and the base yaw (19°) follow the V20 muzzle.
+`web/` runs the exported GLB in the browser (see `web/README.md`). Jaw and ear motion are runtime morph targets there, not part of the master. A silhouette fit against `Reindeer.png` suggests that `Camera.Logo` framing needs about 1.088× scale and a small offset to match the artwork. In V19 the head and antlers follow the artwork in this view; the neck is about 10% narrower at the back than drawn. The jaw morph thresholds follow the V21 bind pose, and the lab sets the artwork pose (19° yaw, 15° tilt) on the Head bone.
 
 ## Remaining decisions
 
-- Review V20 away from the logo view: muzzle length and width, the flatter skull in side view, ear size, and the neck's rear width.
-- Decide whether to move the head's upward tilt out of the mesh into a rig pose, so the neutral pose looks level and straight ahead.
+- Review V21 away from the logo view: muzzle length and width, the flatter skull in side view, ear size, and the neck's rear width.
 - Continue fitting the logo view so the static artwork can transition into a moving 3D character.
 - Choose physical print height/process/material, then validate antler thickness, slicing and a test print.
 - Choose the final web animation range and integration behavior. The exported head-turn clip is a review animation.

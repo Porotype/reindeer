@@ -1,0 +1,72 @@
+/* A black logo stage on the left (the artwork's own ground), one control column on the right; stacks on phones.
+   Single dark look on purpose: the original mark lives on black. No external fonts or assets. */
+:root {
+  --ink: #04070a;
+  --panel: #0a1118;
+  --line: #182632;
+  --text: #dce7ee;
+  --muted: #8299aa;
+  --brand: #24aae1;
+  --brand-hi: #10b7e8;
+  --brand-lo: #127cab;
+  --font-body: "Helvetica Neue", "Segoe UI", Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--ink); color: var(--text); }
+body {
+  font: 15px/1.55 var(--font-body);
+  padding: 20px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+h1 { font: 700 clamp(22px, 3vw, 30px)/1.1 var(--font-body); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--brand); }
+.sub { color: var(--muted); margin: 0; max-width: 62ch; }
+.lab { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .lab { grid-template-columns: minmax(0, 1fr); } }
+
+.stage {
+  position: relative; background: #000; border: 1px solid var(--line);
+  aspect-ratio: 3 / 4; width: min(100%, 70vh); max-width: 100%; margin: 0 auto;
+  overflow: hidden; touch-action: none; cursor: grab;
+}
+.stage.dragging { cursor: grabbing; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage .ref { position: absolute; top: 0; left: 50%; height: 100%; transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
+.stage .hud { position: absolute; left: 12px; bottom: 10px; right: 12px; display: flex; justify-content: space-between; gap: 12px;
+  font: 11px/1.4 var(--font-mono); color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.stage .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 13px var(--font-mono); text-align: center; padding: 24px; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); min-width: 0; }
+.group { padding: 16px 18px 18px; display: grid; gap: 12px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); }
+.group h2 { font: 700 12px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.hint { margin: 0; color: var(--muted); font-size: 13px; }
+.seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.seg button, .btn {
+  appearance: none; border: 1px solid var(--line); background: var(--ink); color: var(--text);
+  font: 500 13px var(--font-body); padding: 9px 10px; cursor: pointer;
+}
+.seg button[aria-checked="true"] { border-color: var(--brand); color: var(--brand-hi); background: #0d2b3c; }
+.btn.primary { border-color: var(--brand-lo); background: #0d3348; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.seg button:focus-visible, .btn:focus-visible, .ctl :focus-visible, a:focus-visible { outline: 2px solid var(--brand-hi); outline-offset: 2px; }
+.ctl { display: grid; gap: 10px; }
+.row { display: grid; grid-template-columns: 84px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 13px; }
+.row output { font: 12px var(--font-mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.row input[type=range] { width: 100%; accent-color: var(--brand); }
+.row select { grid-column: 2 / 4; }
+.row select, .row input[type=number] { background: var(--ink); color: var(--text); border: 1px solid var(--line); padding: 6px 8px; font: inherit; min-width: 0; width: 100%; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.check input { accent-color: var(--brand); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.files { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+.files li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
+.files span { color: var(--muted); font-size: 13px; }
+a { color: var(--brand-hi); }
+footer { border-top: 1px solid var(--line); padding-top: 16px; color: var(--muted); font-size: 13px; }
+footer p { margin: 0; max-width: 70ch; }
+@media (prefers-reduced-motion: reduce) { .stage .ref { transition: none; } }

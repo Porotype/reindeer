@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vaadin Reindeer in 3D</title>
+<meta name="description" content="The Vaadin reindeer logo as a posable low-poly 3D model: original pose, straight, manual, or following your pointer. Download the model or export the current pose for printing.">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/"
+} }
+</script>
+
+<div class="wrap">
+  <header>
+    <h1>Vaadin Reindeer <span>in 3D</span></h1>
+    <p class="sub">The logo, rebuilt as a low-poly model you can pose, turn and print.</p>
+  </header>
+
+  <div class="lab">
+    <div class="stage" id="stage">
+      <canvas id="gl"></canvas>
+      <canvas id="asciicv" hidden></canvas>
+      <img class="ref" id="ref" alt="">
+      <div class="loading" id="loading">Loading model…</div>
+      <div class="hud"><span id="hud-l"></span><span id="hud-r"></span></div>
+    </div>
+
+    <div class="panel">
+      <section class="group">
+        <h2>Pose</h2>
+        <div class="seg" role="radiogroup" aria-label="Pose">
+          <button role="radio" data-mode="original" aria-checked="true">Original</button>
+          <button role="radio" data-mode="straight" aria-checked="false">Straight</button>
+          <button role="radio" data-mode="manual" aria-checked="false">Manual</button>
+          <button role="radio" data-mode="follow" aria-checked="false">Follow pointer</button>
+        </div>
+        <p class="hint" id="modehint"></p>
+        <div class="ctl" id="manual">
+          <div class="row"><label for="p-turn">Turn</label><input type="range" id="p-turn" min="-70" max="70" value="19"><output id="p-turn-o"></output></div>
+          <div class="row"><label for="p-tilt">Tilt</label><input type="range" id="p-tilt" min="-30" max="35" value="15"><output id="p-tilt-o"></output></div>
+          <div class="row"><label for="p-roll">Roll</label><input type="range" id="p-roll" min="-20" max="20" value="0"><output id="p-roll-o"></output></div>
+          <div class="row"><label for="p-jaw">Jaw</label><input type="range" id="p-jaw" min="0" max="100" value="0"><output id="p-jaw-o"></output></div>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>View</h2>
+        <div class="ctl">
+          <div class="row"><label for="shading">Shading</label>
+            <select id="shading">
+              <option value="0">Logo colours</option>
+              <option value="1">Brand ramp</option>
+              <option value="2">Plain, lit</option>
+            </select></div>
+          <label class="check"><input type="checkbox" id="artwork"> Show the original artwork on top</label>
+          <label class="check"><input type="checkbox" id="ascii"> Render as ASCII</label>
+          <div class="row" id="asciirow" hidden><label for="asciiset">Characters</label>
+            <select id="asciiset">
+              <option value="vaadin">Vaadin brand</option>
+              <option value="ramp">Shade ramp</option>
+              <option value="binary">Binary</option>
+              <option value="code">Code glyphs</option>
+            </select></div>
+          <div class="row" id="asciisizerow" hidden><label for="asciisize">Cell size</label><input type="range" id="asciisize" min="6" max="20" value="10"><output id="asciisize-o"></output></div>
+          <div class="btns"><button class="btn" id="resetview">Back to logo view</button></div>
+        </div>
+        <p class="hint">Drag the reindeer to rotate it, scroll to zoom, double-click to return to the logo view.</p>
+      </section>
+
+      <section class="group">
+        <h2>Print the current pose</h2>
+        <div class="ctl">
+          <div class="row"><label for="height">Height</label><input type="number" id="height" min="20" max="1000" step="5" value="120"><output>mm</output></div>
+          <div class="btns"><button class="btn primary" id="exportstl">Export pose as STL</button></div>
+        </div>
+        <p class="hint" id="exporthint">Writes the pose shown, upright and scaled to this height. The file holds five overlapping parts (head and neck, ears, antlers) that are not fused into one solid; most slicers merge them, but it has not been print-checked. For a checked single solid, use the downloads below.</p>
+      </section>
+
+      <section class="group">
+        <h2>Download</h2>
+        <ul class="files">
+          <li><a href="../exports/reindeer-normalized.stl" download>STL, original pose</a><span>one checked solid, unitless</span></li>
+          <li><a href="../exports/reindeer-straight-normalized.stl" download>STL, straight</a><span>one checked solid, unitless</span></li>
+          <li><a href="../exports/reindeer.glb" download>GLB</a><span>rigged, for web and game engines</span></li>
+          <li><a href="../model/reindeer.blend" download>Blender file</a><span>editable master</span></li>
+        </ul>
+        <p class="hint">The STL downloads are about 11.5 units tall with no physical size; scale them in your slicer. Antler strength has not been tested at any size.</p>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <p>A 3D reconstruction of the Vaadin reindeer logo. The reindeer artwork is a Vaadin brand asset.</p>
+  </footer>
+</div>
+
+<script type="module" src="app.js"></script>
+</html>

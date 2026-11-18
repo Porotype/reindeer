@@ -9,6 +9,7 @@
 /exports/*
 !/exports/reindeer.glb
 !/exports/reindeer-normalized.stl
+!/exports/reindeer-straight-normalized.stl
 !/exports/validation.json
 
 /build/

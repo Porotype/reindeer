@@ -1,5 +1,5 @@
-// Local server for the motion lab: serves the repository's web/, exports/ and reference/
-// folders and mints short-lived OpenAI Realtime keys so the API key never reaches the browser.
+// Local server for the motion lab and the share page: serves the repository's web/, site/, exports/,
+// reference/ and model/ folders and mints short-lived OpenAI Realtime keys so the API key never reaches the browser.
 //
 //   OPENAI_API_KEY=sk-... node web/server.mjs        then open http://localhost:8317/
 //
@@ -11,8 +11,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.PORT || 8317);
-const SERVED = ['web', 'exports', 'reference'];
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.glb': 'model/gltf-binary', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
+const SERVED = ['web', 'site', 'exports', 'reference', 'model'];
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.mjs': 'text/javascript', '.glb': 'model/gltf-binary', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
 const INSTRUCTIONS = `You are the Vaadin reindeer, the mascot of Vaadin, the Java web framework company from Turku, Finland.
 Speak calmly and warmly, with dry Nordic understatement. Keep answers short: one to three sentences.`;
 
@@ -46,7 +46,7 @@ http.createServer(async (req, res) => {
       return await session(res);
     }
     let path = normalize(decodeURIComponent(url.pathname)).replace(/^[/\\]+/, '');
-    if (path.endsWith(sep) || path === 'web') path = join(path, 'index.html');
+    if (path.endsWith(sep) || path === 'web' || path === 'site') path = join(path, 'index.html');
     if (!SERVED.includes(path.split(sep)[0])) { res.writeHead(404); return res.end(); }
     const body = await readFile(join(ROOT, path));
     res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream' });

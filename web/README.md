@@ -1,11 +1,11 @@
 # Reindeer motion lab (web)
 
-Browser experiments with the V20 model: logo-matched shading with a drag-to-rotate inspection view (and the earlier hover turns), head-only gaze, voice-driven talking and a live ASCII rendering. It's a single dependency-free page that uses Three.js 0.170.0 from jsDelivr through an import map.
+Browser experiments with the V21 model: logo-matched shading with a drag-to-rotate inspection view (and the earlier hover turns), head-only gaze, voice-driven talking and a live ASCII rendering. It's a single dependency-free page that uses Three.js 0.170.0 from jsDelivr through an import map.
 
 | File | Purpose |
 | --- | --- |
 | `index.html` | The whole lab: markup, styles and one module script |
-| `server.mjs` | Local server (Node 18+, no packages). Serves `web/`, `exports/`, `reference/` and mints OpenAI Realtime ephemeral keys |
+| `server.mjs` | Local server (Node 18+, no packages). Serves `web/`, `site/`, `exports/`, `reference/`, `model/` and mints OpenAI Realtime ephemeral keys |
 | `build-artifact.mjs` | Inlines `exports/reindeer.glb` and `reference/Reindeer.png` into one self-contained HTML file (default `build/reindeer-motion-lab.html`, ignored by Git) |
 
 ```sh
@@ -24,7 +24,7 @@ From `exports/reindeer.glb`, the only runtime asset besides `reference/Reindeer.
 
 - glTF space: Y up, muzzle toward **+Z**, X is width. Units are normalized design units.
 - Five skinned meshes on one skin with two joints. **Chest** sits at the neck base and is never moved. **Head** is at (0, 4.798, −0.05) relative to the chest, near the jaw hinge. Ears and antlers are 100% Head. Neck vertices between y 3.6 and 4.6 are blended 10–33% to Chest, so rotating Head bends the upper neck softly.
-- The artwork pose is a **19° head yaw** (`BASE_YAW`). The GLB's review animation is ignored, and the pose is set directly on the Head bone.
+- The GLB's bind pose is neutral: head level and straight. The artwork pose is a **19° head yaw** (`BASE_YAW`) and a **15° upward tilt** (`BASE_PITCH`, −15 as a rotation about X); pitch values elsewhere in the lab are relative to that. The GLB's review animation is ignored, and the pose is set directly on the Head bone.
 - GLTFLoader sanitizes node names (`Camera.Logo` becomes `CameraLogo`). Look them up through `THREE.PropertyBinding.sanitizeNodeName`, as `byName()` does.
 - `Camera.Logo` is orthographic with half-height 5.95, matched to the 287×500 artwork.
 
@@ -33,7 +33,7 @@ From `exports/reindeer.glb`, the only runtime asset besides `reference/Reindeer.
 1. **Load.** Parse the GLB and the reference PNG, and copy `Camera.Logo`'s world transform into the live orthographic camera.
 2. **Prepare meshes.** Convert to non-indexed geometry so every triangle owns its vertices (needed for per-facet colours) and keep the original GLB material for the comparison mode.
 3. **Morph targets, added at load and kept out of the master.**
-   - *Jaw:* head vertices below the mouth line (y < 5.5) with z > 2.0 (chin and mouth front, weight 1) or z > 1.5 (jaw underside, weight 0.75), and the front throat row (weight 0.2) rotate about an X axis through (0, 5.43, 0.7), just under the mouth line. The mouth corner sits at y 5.515, so the 5.5 cut is tight. Full influence is 10° (`JAW_MAX`).
+   - *Jaw:* head vertices below the mouth line (y < 4.78, bind pose) with z > 2.5 (chin and mouth front, weight 1) or z > 1.8 (jaw underside, weight 0.75), and the front throat row (weight 0.2) rotate about an X axis through (0, 5.12, 0.93), behind the mouth corner. The nose pad's lower point sits at y 4.85 and the mouth front at 4.71, so the cut is tight. Full influence is 10° (`JAW_MAX`).
    - *Ear perk:* each ear rotates 14° about an axis through its base, chosen so the tip lifts. Negative influence droops the ear, which is used for flicks.
    - Morphs are applied before skinning, so they follow the head.
 4. **Fit to the artwork** (`fitToArtwork`). Render a white silhouette, then match its area and centroid to the artwork's non-black pixels over three iterations. The result is a 2D frame (`frame2d`: scale ≈ 1.088, small offset) used by the camera and the overlay. The 3D camera angle is left alone.
@@ -41,7 +41,7 @@ From `exports/reindeer.glb`, the only runtime asset besides `reference/Reindeer.
    - Union coplanar neighbouring triangles into facet groups.
    - For each camera-facing group, project seven barycentric samples per triangle into `Reindeer.png`, snap each sample to the nearest of the 13 SVG fills, and take the area-weighted vote.
    - Fit `lum ≈ a + v·n` by least squares over the matched groups to recover the artwork's implied light.
-   - Groups hidden at rest get a colour from the brand ramp. Each vertex stores `color` (linear), `restLight` (`a + v·n` at rest) and `glowMask` (head facets with 3.4 < y < 5.5 and z > 0.2, the throat and lower jaw).
+   - Groups hidden at rest get a colour from the brand ramp. Each vertex stores `color` (linear), `restLight` (`a + v·n` at rest) and `glowMask` (head facets with 3.4 < y < 4.8 and z > 0.2, the throat and lower jaw).
 6. **Material** (`facetMaterial`). `MeshBasicMaterial` patched with `onBeforeCompile`, so skinning and morphs keep working. The fragment shader takes the facet normal from screen-space derivatives (always flat).
    - Mode 0: `baked × (a + v·n) / restLight`. This reproduces the logo exactly at rest and relights believably as the model turns.
    - Mode 1: steps the same lighting through the 5-colour brand ramp.

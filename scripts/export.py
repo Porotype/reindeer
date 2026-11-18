@@ -129,6 +129,7 @@ def main():
     if animation is None:
         raise RuntimeError('The master is missing its head-turn driver.')
     nominal_yaw = float(rig[CONFIG['head_turn_control']])
+    nominal_tilt = float(rig[CONFIG['head_tilt_control']])
     settings = CONFIG['animation']
     original_action = animation.action
     original_slot = animation.action_slot
@@ -150,12 +151,23 @@ def main():
                       source_model=CONFIG['master'],
                       print_scale=CONFIG['print_scale'],
                       static_head_yaw_degrees=nominal_yaw,
+                      static_head_tilt_degrees=nominal_tilt,
                       master_body_vertices=len(body.data.vertices),
                       master_body_polygons=len(body.data.polygons))
         source_path = Path(bpy.data.filepath)
         if source_path.is_file():
             report['on_disk_master_sha256'] = hashlib.sha256(source_path.read_bytes()).hexdigest()
         report['print_mesh'] = print_mesh(scene, meshes, output / 'reindeer-normalized.stl')
+        # The same union in the neutral pose: head level and straight ahead.
+        rig[CONFIG['head_turn_control']] = 0.0
+        rig[CONFIG['head_tilt_control']] = 0.0
+        rig.update_tag()
+        bpy.context.view_layer.update()
+        report['print_mesh_straight'] = print_mesh(scene, meshes, output / 'reindeer-straight-normalized.stl')
+        rig[CONFIG['head_turn_control']] = nominal_yaw
+        rig[CONFIG['head_tilt_control']] = nominal_tilt
+        rig.update_tag()
+        bpy.context.view_layer.update()
 
         animation.action = None
         for driver, _ in drivers:
@@ -166,6 +178,7 @@ def main():
         scene.frame_start, scene.frame_end = settings['frames'][0], settings['frames'][-1]
         scene.render.fps = settings['fps']
         for frame, offset in zip(settings['frames'], settings['yaw_offsets_degrees']):
+            head.rotation_euler[0] = -math.radians(nominal_tilt)
             head.rotation_euler[1] = math.radians(nominal_yaw + offset)
             head.keyframe_insert(data_path='rotation_euler', frame=frame, group=CONFIG['head_bone'])
         temporary_action = animation.action
@@ -191,6 +204,8 @@ def main():
         print('Exported GLB, normalized STL and validation.json to', output)
         print(json.dumps(report, indent=2))
     finally:
+        rig[CONFIG['head_turn_control']] = nominal_yaw
+        rig[CONFIG['head_tilt_control']] = nominal_tilt
         animation.action = original_action
         if original_action is not None and original_slot is not None:
             animation.action_slot = original_slot
