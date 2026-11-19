@@ -1,6 +1,6 @@
 # Vaadin reindeer reconstruction
 
-An editable, deliberately low-poly reindeer head and neck for web animation and 3D printing. The current model is **V21**, authored in **Blender 5.3.0 Beta**.
+An editable, deliberately low-poly reindeer head and neck for web animation and 3D printing. The current model is **V21**, authored in **Blender 5.3.0**.
 
 ![Current model](docs/preview.png)
 
@@ -9,6 +9,7 @@ An editable, deliberately low-poly reindeer head and neck for web animation and 
 | `model/reindeer.blend` | Self-contained editable master: five meshes, head/neck rig, two cameras |
 | `reference/` | Original artwork, repaired volume reference and annotated targets |
 | `scripts/export.py` | Portable GLB/STL export and geometry checks |
+| `scripts/print_parts.py` | Two hollow, millimetre-scaled print parts with magnet, wire and dowel holes (see `docs/printing.md`) |
 | `exports/` | One current set of convenient derivatives and validation results |
 | `docs/model-notes.md` | Modeling decisions and remaining work |
 | `web/` | Browser motion lab: logo-matched shading, gaze, voice-driven talking, ASCII (see `web/README.md`) |

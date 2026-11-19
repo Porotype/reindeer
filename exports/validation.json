@@ -1,38 +1,38 @@
 {
   "source_revision": "V21",
-  "blender_version": "5.3.0 Beta",
+  "blender_version": "5.3.0",
   "source_model": "model/reindeer.blend",
   "print_scale": "undecided; coordinates are normalized design units",
   "static_head_yaw_degrees": 19.0,
   "static_head_tilt_degrees": 15.0,
   "master_body_vertices": 60,
   "master_body_polygons": 108,
-  "on_disk_master_sha256": "32b34469b47525f8c4bf738e561dc1f3fb0d3cfa42e20fe04213e756f0b17065",
+  "on_disk_master_sha256": "9f48cf72bf644fd0fc4176a285d0e2b16bdf8964c5550a5c9bcaf2c94a3334ab",
   "print_mesh": {
     "component_sizes": [
-      323
+      325
     ],
     "nonmanifold_edges": 0,
     "boundary_edges": 0,
     "nonadjacent_overlap_candidates": 0,
-    "triangles": 642,
-    "volume_design_units": 19.895204787988842
+    "triangles": 646,
+    "volume_design_units": 19.907311938453734
   },
   "print_mesh_straight": {
     "component_sizes": [
-      323
+      325
     ],
     "nonmanifold_edges": 0,
     "boundary_edges": 0,
     "nonadjacent_overlap_candidates": 0,
-    "triangles": 642,
-    "volume_design_units": 19.92455568688002
+    "triangles": 646,
+    "volume_design_units": 19.936662828758102
   },
   "maximum_panel_deviation_by_frame": {
-    "1": 9.82808091492485e-08,
-    "31": 1.342966765045392e-07,
-    "61": 9.82808091492485e-08,
-    "91": 1.039619501127049e-07,
-    "121": 9.82808091492485e-08
+    "1": 9.828080914222172e-08,
+    "31": 1.3429667651481984e-07,
+    "61": 9.828080914222172e-08,
+    "91": 1.0396195011109996e-07,
+    "121": 9.828080914222172e-08
   }
 }

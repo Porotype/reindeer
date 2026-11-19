@@ -18,3 +18,6 @@ __pycache__/
 *.blend[0-9]*
 *.log
 .DS_Store
+
+# Local tools, e.g. a portable Blender in .local/blender/.
+/.local/

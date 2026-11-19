@@ -46,74 +46,84 @@ def print_mesh(scene, meshes, destination):
     scene.collection.children.link(collection)
     temporary_meshes = []
     try:
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        parts = []
-        for source in meshes:
-            evaluated = source.evaluated_get(depsgraph)
-            data = bpy.data.meshes.new_from_object(evaluated, depsgraph=depsgraph)
-            data.transform(evaluated.matrix_world)
-            temporary_meshes.append(data)
-            obj = bpy.data.objects.new('Print_' + source.name, data)
-            collection.objects.link(obj)
-            parts.append(obj)
-        base = parts[0]
-        bpy.context.view_layer.objects.active = base
-        for other in parts[1:]:
-            modifier = base.modifiers.new('Union', 'BOOLEAN')
-            modifier.operation = 'UNION'
-            modifier.object = other
-            bpy.ops.object.modifier_apply(modifier=modifier.name)
-            other.hide_set(True)
-            other.hide_render = True
-
-        bm = bmesh.new()
-        try:
-            bm.from_mesh(base.data)
-            bmesh.ops.triangulate(bm, faces=list(bm.faces))
-            bm.faces.ensure_lookup_table()
-            seen, components = set(), []
-            for vertex in bm.verts:
-                if vertex in seen:
-                    continue
-                pending, count = [vertex], 0
-                seen.add(vertex)
-                while pending:
-                    current = pending.pop()
-                    count += 1
-                    for edge in current.link_edges:
-                        adjacent = edge.other_vert(current)
-                        if adjacent not in seen:
-                            seen.add(adjacent)
-                            pending.append(adjacent)
-                components.append(count)
-            tree = BVHTree.FromBMesh(bm, epsilon=1e-7)
-            overlaps = [(a, b) for a, b in tree.overlap(tree)
-                        if a < b and not set(bm.faces[a].verts).intersection(bm.faces[b].verts)]
-            report = dict(component_sizes=components,
-                          nonmanifold_edges=sum(not e.is_manifold for e in bm.edges),
-                          boundary_edges=sum(e.is_boundary for e in bm.edges),
-                          nonadjacent_overlap_candidates=len(overlaps),
-                          triangles=len(bm.faces), volume_design_units=bm.calc_volume())
-            if (len(components) != 1 or report['nonmanifold_edges'] or
-                    report['boundary_edges'] or overlaps or report['volume_design_units'] <= 0):
-                raise RuntimeError('Printable union failed validation: ' + json.dumps(report))
-            bm.to_mesh(base.data)
-        finally:
-            bm.free()
+        base, report = printable_union(meshes, collection, temporary_meshes)
         bpy.ops.object.select_all(action='DESELECT')
         base.select_set(True)
         bpy.context.view_layer.objects.active = base
         bpy.ops.wm.stl_export(filepath=str(destination), export_selected_objects=True)
         return report
     finally:
-        for obj in list(collection.objects):
-            if obj.data not in temporary_meshes:
-                temporary_meshes.append(obj.data)
-            bpy.data.objects.remove(obj, do_unlink=True)
-        bpy.data.collections.remove(collection)
-        for data in temporary_meshes:
-            if data.users == 0:
-                bpy.data.meshes.remove(data)
+        remove_collection(collection, temporary_meshes)
+
+
+def remove_collection(collection, temporary_meshes):
+    for obj in list(collection.objects):
+        if obj.data not in temporary_meshes:
+            temporary_meshes.append(obj.data)
+        bpy.data.objects.remove(obj, do_unlink=True)
+    bpy.data.collections.remove(collection)
+    for data in temporary_meshes:
+        if data.users == 0:
+            bpy.data.meshes.remove(data)
+
+
+def printable_union(meshes, collection, temporary_meshes):
+    """Join the posed meshes into one validated, triangulated object in `collection`."""
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    parts = []
+    for source in meshes:
+        evaluated = source.evaluated_get(depsgraph)
+        data = bpy.data.meshes.new_from_object(evaluated, depsgraph=depsgraph)
+        data.transform(evaluated.matrix_world)
+        temporary_meshes.append(data)
+        obj = bpy.data.objects.new('Print_' + source.name, data)
+        collection.objects.link(obj)
+        parts.append(obj)
+    base = parts[0]
+    bpy.context.view_layer.objects.active = base
+    for other in parts[1:]:
+        modifier = base.modifiers.new('Union', 'BOOLEAN')
+        modifier.operation = 'UNION'
+        modifier.object = other
+        bpy.ops.object.modifier_apply(modifier=modifier.name)
+        other.hide_set(True)
+        other.hide_render = True
+
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(base.data)
+        bmesh.ops.triangulate(bm, faces=list(bm.faces))
+        bm.faces.ensure_lookup_table()
+        seen, components = set(), []
+        for vertex in bm.verts:
+            if vertex in seen:
+                continue
+            pending, count = [vertex], 0
+            seen.add(vertex)
+            while pending:
+                current = pending.pop()
+                count += 1
+                for edge in current.link_edges:
+                    adjacent = edge.other_vert(current)
+                    if adjacent not in seen:
+                        seen.add(adjacent)
+                        pending.append(adjacent)
+            components.append(count)
+        tree = BVHTree.FromBMesh(bm, epsilon=1e-7)
+        overlaps = [(a, b) for a, b in tree.overlap(tree)
+                    if a < b and not set(bm.faces[a].verts).intersection(bm.faces[b].verts)]
+        report = dict(component_sizes=components,
+                      nonmanifold_edges=sum(not e.is_manifold for e in bm.edges),
+                      boundary_edges=sum(e.is_boundary for e in bm.edges),
+                      nonadjacent_overlap_candidates=len(overlaps),
+                      triangles=len(bm.faces), volume_design_units=bm.calc_volume())
+        if (len(components) != 1 or report['nonmanifold_edges'] or
+                report['boundary_edges'] or overlaps or report['volume_design_units'] <= 0):
+            raise RuntimeError('Printable union failed validation: ' + json.dumps(report))
+        bm.to_mesh(base.data)
+    finally:
+        bm.free()
+    return base, report
 
 
 def main():

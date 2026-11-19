@@ -33,6 +33,7 @@ Until V20 only the turn was a rig property; the upward tilt of the logo pose was
 
 - The 15 degrees is a judgement: in V20 the mouth line was level and the crown flat, which reads as chin-up. Neutral now has the mouth line 15 degrees down and the nose bridge about 28.
 - The export writes two printable unions: `reindeer-normalized.stl` in the logo pose and `reindeer-straight-normalized.stl` in the neutral pose. Both are checked the same way.
+- The ear roots were seated more firmly for printing. The inner upper edge of each ear now continues at its own angle until it is 0.1 inside the head; before, it ended just outside, with a steep step down to the head. The lower root corner is also 0.1 inside. Only the two root vertices of each ear moved, and the change is barely visible in the logo view.
 - Tried and rejected (V22 trial, `work/refine_v22.py`): reading the ridge down the artwork's neck as the front of a chest facing the viewer, with a 71-degree head turn. A symmetric chest loses the artwork's neck outline (the left edge bulges low, the right edge higher, as a neck seen from the side does), and the neutral pose wrings the throat join.
 
 ## Web motion lab
@@ -43,7 +44,7 @@ Until V20 only the turn was a rig property; the upward tilt of the logo pose was
 
 - Review V21 away from the logo view: muzzle length and width, the flatter skull in side view, ear size, and the neck's rear width.
 - Continue fitting the logo view so the static artwork can transition into a moving 3D character.
-- Choose physical print height/process/material, then validate antler thickness, slicing and a test print.
+- Validate the two-part hollow print (`docs/printing.md`; Prusa Mini, frosted PC, logo pose) with a test print, then print the full size.
 - Choose the final web animation range and integration behavior. The exported head-turn clip is a review animation.
 
 The supplied AI/Fusion STL is a volume reference, not the reconstructed surface topology. The original illustration has a simulated 3D appearance, so a single physical model cannot necessarily reproduce every drawn facet exactly.
